@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+// Next.js App Router route configuration for long-running AI agent workflows
+export const maxDuration = 300; // 5 minutes max duration
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -11,38 +15,31 @@ export async function POST(request: Request) {
 
     const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
 
-    // 120-second timeout signal to support full multi-agent LLM reasoning
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
-
     try {
-      console.log(`[Next.js API Route] Forwarding request to live FastAPI backend at ${backendUrl}/api/generate...`);
+      console.log(`[Next.js API Route] Invoking FastAPI multi-agent endpoint at ${backendUrl}/api/generate...`);
       const backendRes = await fetch(`${backendUrl}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ problem_statement }),
-        signal: controller.signal,
+        cache: "no-store",
       });
-
-      clearTimeout(timeoutId);
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        console.log(`[Next.js API Route] Received live multi-agent response from FastAPI backend!`);
+        console.log(`[Next.js API Route] Multi-agent execution completed successfully.`);
         return NextResponse.json(data);
       } else {
         const errText = await backendRes.text();
-        console.error(`[Next.js API Route] Backend returned error status ${backendRes.status}: ${errText}`);
+        console.error(`[Next.js API Route] Backend returned status ${backendRes.status}: ${errText}`);
         return NextResponse.json(
-          { error: `Backend service error (${backendRes.status}): ${errText}` },
+          { error: `Backend server error (${backendRes.status}): ${errText}` },
           { status: backendRes.status }
         );
       }
     } catch (backendErr: any) {
-      clearTimeout(timeoutId);
       console.error(`[Next.js API Route] Backend connection exception: ${backendErr.message}`);
       return NextResponse.json(
-        { error: `Could not connect to FastAPI backend at ${backendUrl}. Please ensure FastAPI is running on port 8000. Error: ${backendErr.message}` },
+        { error: `Could not connect to FastAPI backend at ${backendUrl}. Please verify FastAPI is running on port 8000.` },
         { status: 503 }
       );
     }

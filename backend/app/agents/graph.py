@@ -3,7 +3,7 @@ import os
 import json
 from typing import Dict, Any
 
-# Ensure UTF-8 output encoding on Windows
+# Force UTF-8 encoding for standard output/error on Windows
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 if hasattr(sys.stderr, 'reconfigure'):
@@ -27,7 +27,7 @@ def _get_genai_client():
 def orchestrator_node(state: ProjectState) -> dict:
     """Orchestrator Agent Node."""
     statement = state.get('problem_statement', '').encode('utf-8', errors='replace').decode('utf-8')
-    print(f"[LangGraph Orchestrator] Initializing multi-agent pipeline for problem: '{statement[:50]}...'")
+    print(f"[LangGraph Orchestrator] Starting workflow for: '{statement[:50]}...'")
     return {"current_step": "research"}
 
 def research_node(state: ProjectState) -> dict:
@@ -37,18 +37,18 @@ def research_node(state: ProjectState) -> dict:
 
     if client:
         try:
-            print(f"[LangGraph Research Agent] Calling live Gemini AI model (gemma-4-26b-a4b-it)...")
+            print(f"[LangGraph Research Agent] Executing live LLM problem research...")
             prompt = f"""
-            You are a Senior Hackathon Product Strategist. Analyze the following problem statement:
-            Problem Statement: {problem}
+            Analyze this hackathon problem idea:
+            "{problem}"
             
-            Return ONLY a valid raw JSON object matching this schema (no extra explanation or markdown block wrappers):
+            Respond ONLY with a valid JSON object (no markdown quotes):
             {{
-                "domain_category": "Industry Category (e.g. Healthcare, FinTech, DevTools, EdTech)",
-                "core_problem": "Detailed breakdown of the root cause and market gap",
-                "target_audience": ["Target User 1", "Target User 2", "Target User 3"],
+                "domain_category": "Domain (e.g., AI/ML, HealthTech, FinTech, DevTools)",
+                "core_problem": "Concise root cause description",
+                "target_audience": ["Target Persona 1", "Target Persona 2"],
                 "key_pain_points": ["Pain Point 1", "Pain Point 2", "Pain Point 3"],
-                "competitive_landscape": "Why this solution wins over existing alternatives",
+                "competitive_landscape": "Why this solution wins over existing tools",
                 "feasibility_score": 90
             }}
             """
@@ -66,15 +66,14 @@ def research_node(state: ProjectState) -> dict:
             return {"research_data": research_data, "current_step": "product"}
         except Exception as e:
             safe_err = str(e).encode('utf-8', errors='replace').decode('utf-8')
-            print(f"[Research Agent Error] Live LLM execution exception: {safe_err}")
+            print(f"[Research Agent Warning] Fallback used: {safe_err}")
 
-    # Fallback generator if API key is un-configured or transient network delay occurs
     words = problem.split()[:6]
     topic = " ".join(words)
     return {
         "research_data": {
-            "domain_category": "AI Agents & Developer Tools",
-            "core_problem": f"High manual latency and process bottlenecks associated with: '{topic}...'. Existing tools lack real-time autonomous coordination.",
+            "domain_category": "AI Agents & Developer Automation",
+            "core_problem": f"High manual effort and workflow bottlenecks associated with: '{topic}...'. Existing tools lack real-time autonomous coordination.",
             "target_audience": ["Developers & Tech Builders", "Hackathon Teams", "Domain Specialists"],
             "key_pain_points": [
                 "Time-consuming manual project setup during 24-48h hackathons",
@@ -88,36 +87,36 @@ def research_node(state: ProjectState) -> dict:
     }
 
 def product_node(state: ProjectState) -> dict:
-    """Product Agent Node: Live AI Product Specification & Roadmap."""
+    """Product Agent Node: Live AI Product Specification."""
     problem = state.get("problem_statement", "")
     research = state.get("research_data", {})
     client = _get_genai_client()
 
     if client:
         try:
-            print(f"[LangGraph Product Agent] Calling live Gemini AI model...")
+            print(f"[LangGraph Product Agent] Executing live LLM product specification...")
             prompt = f"""
-            You are a Senior Technical Product Manager. Generate a Product Specification based on:
-            Problem Statement: {problem}
-            Research Analysis: {json.dumps(research)}
+            Generate a Product Specification for:
+            Problem: {problem}
+            Domain: {research.get('domain_category', 'Tech')}
             
-            Return ONLY a valid raw JSON object matching this schema:
+            Respond ONLY with a valid JSON object:
             {{
-                "project_name": "Creative Catchy Project Name",
+                "project_name": "Catchy Project Title",
                 "mvp_features": [
-                    {{"name": "MVP Feature 1", "description": "Detailed explanation", "priority": "MVP"}},
-                    {{"name": "MVP Feature 2", "description": "Detailed explanation", "priority": "MVP"}},
-                    {{"name": "MVP Feature 3", "description": "Detailed explanation", "priority": "MVP"}}
+                    {{"name": "Feature 1", "description": "Short details", "priority": "MVP"}},
+                    {{"name": "Feature 2", "description": "Short details", "priority": "MVP"}},
+                    {{"name": "Feature 3", "description": "Short details", "priority": "MVP"}}
                 ],
                 "phase2_features": [
-                    {{"name": "Post-Hackathon Feature", "description": "Future scope details", "priority": "Future"}}
+                    {{"name": "Future Feature", "description": "Short details", "priority": "Future"}}
                 ],
                 "user_stories": [
-                    "As a [user], I want to [action] so that [benefit]."
+                    "As a user, I want to feature so that benefit."
                 ],
                 "ux_workflow": [
-                    "Step 1: User enters problem statement",
-                    "Step 2: AI engine processes input"
+                    "Step 1: User enters criteria",
+                    "Step 2: System processes request"
                 ]
             }}
             """
@@ -135,7 +134,7 @@ def product_node(state: ProjectState) -> dict:
             return {"product_spec": product_spec, "current_step": "architecture"}
         except Exception as e:
             safe_err = str(e).encode('utf-8', errors='replace').decode('utf-8')
-            print(f"[Product Agent Error] Live LLM execution exception: {safe_err}")
+            print(f"[Product Agent Warning] Fallback used: {safe_err}")
 
     return {
         "product_spec": {
@@ -143,7 +142,7 @@ def product_node(state: ProjectState) -> dict:
             "mvp_features": [
                 {"name": "Problem Statement Parser", "description": "Interactive input interface with intent extraction.", "priority": "MVP"},
                 {"name": "Stateful Agent Workflow Engine", "description": "LangGraph multi-agent graph running Orchestrator -> Research -> Product -> Architecture.", "priority": "MVP"},
-                {"name": "Blueprint Portal & Exporter", "description": "Dashboard rendering DB schemas, API contracts, and Markdown download.", "priority": "MVP"}
+                {"name": "Blueprint Portal & PDF Exporter", "description": "Dashboard rendering DB schemas, API contracts, and PDF download.", "priority": "MVP"}
             ],
             "phase2_features": [
                 {"name": "Automated Repository Scaffolder", "description": "Auto-generates starter code repository.", "priority": "Future"}
@@ -162,7 +161,7 @@ def product_node(state: ProjectState) -> dict:
     }
 
 def architecture_node(state: ProjectState) -> dict:
-    """Architecture Agent Node: Live AI Technical Architecture, DB Schema & API Design."""
+    """Architecture Agent Node: Live AI Architecture & DB Design."""
     problem = state.get("problem_statement", "")
     research = state.get("research_data", {})
     product = state.get("product_spec", {})
@@ -170,14 +169,13 @@ def architecture_node(state: ProjectState) -> dict:
 
     if client:
         try:
-            print(f"[LangGraph Architecture Agent] Calling live Gemini AI model...")
+            print(f"[LangGraph Architecture Agent] Executing live LLM architecture design...")
             prompt = f"""
-            You are a Principal Software Architect. Design a production-ready technical architecture for:
-            Problem Statement: {problem}
-            Research: {json.dumps(research)}
-            Product Spec: {json.dumps(product)}
+            Design a technical architecture for:
+            Project: {product.get('project_name', 'System')}
+            Problem: {problem}
             
-            Return ONLY a valid raw JSON object matching this schema:
+            Respond ONLY with a valid JSON object:
             {{
                 "recommended_tech_stack": {{
                     "frontend": "Next.js 14, TypeScript, Tailwind CSS",
@@ -211,7 +209,7 @@ def architecture_node(state: ProjectState) -> dict:
             return {"architecture_spec": arch_spec, "current_step": "completed"}
         except Exception as e:
             safe_err = str(e).encode('utf-8', errors='replace').decode('utf-8')
-            print(f"[Architecture Agent Error] Live LLM execution exception: {safe_err}")
+            print(f"[Architecture Agent Warning] Fallback used: {safe_err}")
 
     return {
         "architecture_spec": {
