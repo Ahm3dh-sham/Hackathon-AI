@@ -1,147 +1,242 @@
+import os
+import json
+from typing import Dict, Any
 from langgraph.graph import StateGraph, END
 from app.agents.state import ProjectState
+from app.core.config import settings
+
+def _get_llm():
+    """Instantiates the preferred LangChain LLM client (OpenAI or Gemini)."""
+    openai_key = settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
+    gemini_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+
+    if openai_key:
+        try:
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(model="gpt-4o-mini", api_key=openai_key, temperature=0.3)
+        except Exception as e:
+            print(f"[LLM] OpenAI client init warning: {e}")
+
+    if gemini_key:
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=gemini_key, temperature=0.3)
+        except Exception as e:
+            print(f"[LLM] Gemini client init warning: {e}")
+
+    return None
 
 def orchestrator_node(state: ProjectState) -> dict:
-    """Orchestrator Agent Node: Initializes execution and coordinates agents."""
-    print("[Agent Node: Orchestrator] Analyzing input and initializing state...")
-    return {
-        "current_step": "research",
-    }
+    """Orchestrator Agent Node: Logs startup and prepares state."""
+    print(f"[LangGraph Orchestrator] Analyzing input problem statement...")
+    return {"current_step": "research"}
 
 def research_node(state: ProjectState) -> dict:
-    """Research Agent Node: Conducts problem analysis and market research."""
-    print("[Agent Node: Research] Conducting problem analysis...")
+    """Research Agent Node: Invokes LLM for real problem and market research."""
     problem = state.get("problem_statement", "")
-    words = problem.split()[:5]
-    summary = " ".join(words) + "..."
-    
-    mock_research = {
-        "domain_category": "AI Agents & Developer Tools",
-        "core_problem": f"Market analysis indicates high friction in manual workflows related to: '{summary}'. Existing solutions lack real-time autonomous coordination.",
-        "target_audience": [
-          "Hackathon Builders & Startup Teams",
-          "Software Architects & Technical Leads",
-          "Enterprise Automation Engineers"
-        ],
-        "key_pain_points": [
-          "Time-consuming manual project planning in 24-48h hackathons",
-          "Inconsistent API contract definitions across multi-developer teams",
-          "Lack of automated research & technology stack recommendations"
-        ],
-        "competitive_landscape": "Most tools focus only on static code boilerplate rather than autonomous problem-to-spec blueprint synthesis.",
-        "feasibility_score": 92
-    }
-    
+    llm = _get_llm()
+
+    if llm:
+        try:
+            print(f"[LangGraph Research Agent] Invoking real LLM analysis...")
+            prompt = f"""
+            You are a Senior Hackathon Strategist. Perform deep problem and domain analysis for this hackathon idea:
+            
+            Problem Statement: {problem}
+            
+            Respond strictly with a valid JSON object matching this schema:
+            {{
+                "domain_category": "Domain name (e.g. HealthTech, Developer Automation, FinTech)",
+                "core_problem": "Detailed description of the underlying root cause",
+                "target_audience": ["Target Persona 1", "Target Persona 2"],
+                "key_pain_points": ["Pain point 1", "Pain point 2", "Pain point 3"],
+                "competitive_landscape": "Analysis of existing solutions and why this stands out",
+                "feasibility_score": 88
+            }}
+            """
+            from langchain_core.messages import SystemMessage, HumanMessage
+            response = llm.invoke([
+                SystemMessage(content="You return strictly valid JSON matching the requested schema without markdown quotes."),
+                HumanMessage(content=prompt)
+            ])
+            text = response.content.strip()
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].strip()
+            
+            research_data = json.loads(text)
+            return {"research_data": research_data, "current_step": "product"}
+        except Exception as e:
+            print(f"[Research Agent] LLM execution error: {e}")
+
+    # Heuristic fallback if LLM key is absent
+    words = problem.split()[:6]
+    topic = " ".join(words)
     return {
-        "research_data": mock_research,
+        "research_data": {
+            "domain_category": "AI Agents & Autonomous Workflows",
+            "core_problem": f"High manual effort and workflow bottlenecks associated with: '{topic}...'. Existing tools lack real-time multi-agent coordination.",
+            "target_audience": ["Developers & Technical Builders", "Hackathon Participants", "Domain Specialists"],
+            "key_pain_points": [
+                "Time-consuming setup during 24-48h hackathons",
+                "Lack of structured API contract definitions",
+                "Difficulty converting raw problem ideas into clean technical specs"
+            ],
+            "competitive_landscape": "Existing solutions focus on basic static templates rather than dynamic autonomous multi-agent synthesis.",
+            "feasibility_score": 94
+        },
         "current_step": "product"
     }
 
 def product_node(state: ProjectState) -> dict:
-    """Product Agent Node: Synthesizes Product Specification (MVP & Features)."""
-    print("[Agent Node: Product] Generating product specification...")
+    """Product Agent Node: Invokes LLM to generate product features and user stories."""
+    problem = state.get("problem_statement", "")
     research = state.get("research_data", {})
-    
-    mock_product = {
-        "project_name": "HackForge AI Platform",
-        "mvp_features": [
-          {
-            "name": "Problem Statement Parser",
-            "description": "Interactive UI portal with instant preset selectors to parse hackathon ideas.",
-            "priority": "MVP"
-          },
-          {
-            "name": "LangGraph StateGraph Engine",
-            "description": "Stateful 4-agent graph orchestrating Orchestrator, Research, Product, and Architecture nodes.",
-            "priority": "MVP"
-          },
-          {
-            "name": "Interactive Blueprint Visualizer",
-            "description": "Structured card display of specs, database schema, and Markdown export.",
-            "priority": "MVP"
-          }
-        ],
-        "phase2_features": [
-          {
-            "name": "GitHub Repo Scaffolder",
-            "description": "Automatically initializes Git repository with generated code templates.",
-            "priority": "Future"
-          }
-        ],
-        "user_stories": [
-          "As a hackathon participant, I want to input my project idea and get an instant structured technical architecture.",
-          "As a developer, I want to view API endpoints and DB schemas so I can start coding immediately.",
-          "As a team lead, I want to export the generated blueprint into Markdown for our README."
-        ],
-        "ux_workflow": [
-          "1. User enters problem statement into the input form.",
-          "2. LangGraph state graph executes Orchestrator -> Research -> Product -> Architecture agents.",
-          "3. Backend returns structured JSON blueprint payload.",
-          "4. Frontend displays structured UI cards and enables Markdown export."
-        ]
-    }
-    
+    llm = _get_llm()
+
+    if llm:
+        try:
+            print(f"[LangGraph Product Agent] Invoking real LLM product spec synthesis...")
+            prompt = f"""
+            You are a Senior Technical Product Manager. Generate a Product Specification based on:
+            Problem Statement: {problem}
+            Research Analysis: {json.dumps(research)}
+            
+            Respond strictly with a valid JSON object matching this schema:
+            {{
+                "project_name": "Catchy Project Title",
+                "mvp_features": [
+                    {{"name": "Feature 1", "description": "Details", "priority": "MVP"}},
+                    {{"name": "Feature 2", "description": "Details", "priority": "MVP"}}
+                ],
+                "phase2_features": [
+                    {{"name": "Future Feature", "description": "Details", "priority": "Future"}}
+                ],
+                "user_stories": [
+                    "As a [user], I want to [action] so that [value]."
+                ],
+                "ux_workflow": [
+                    "Step 1: User lands on dashboard and inputs criteria",
+                    "Step 2: AI engine processes request"
+                ]
+            }}
+            """
+            from langchain_core.messages import SystemMessage, HumanMessage
+            response = llm.invoke([
+                SystemMessage(content="You return strictly valid JSON matching the requested schema."),
+                HumanMessage(content=prompt)
+            ])
+            text = response.content.strip()
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].strip()
+
+            product_spec = json.loads(text)
+            return {"product_spec": product_spec, "current_step": "architecture"}
+        except Exception as e:
+            print(f"[Product Agent] LLM execution error: {e}")
+
+    # Fallback
     return {
-        "product_spec": mock_product,
+        "product_spec": {
+            "project_name": f"{research.get('domain_category', 'AI Platform').split()[0]} Forge AI",
+            "mvp_features": [
+                {"name": "Problem Statement Parser", "description": "Interactive input interface with preset idea buttons.", "priority": "MVP"},
+                {"name": "LangGraph Stateful Agent Engine", "description": "Multi-agent graph running Orchestrator -> Research -> Product -> Architecture.", "priority": "MVP"},
+                {"name": "Interactive Blueprint Display & Exporter", "description": "UI dashboard rendering database schemas, API specs, and Markdown export.", "priority": "MVP"}
+            ],
+            "phase2_features": [
+                {"name": "Automated Repository Scaffolder", "description": "Auto-generates starter GitHub repository code.", "priority": "Future"}
+            ],
+            "user_stories": [
+                "As a developer, I want to input my hackathon problem statement to get a complete technical architecture spec.",
+                "As a team lead, I want to review recommended API endpoints so my team can start coding immediately."
+            ],
+            "ux_workflow": [
+                "1. User submits problem statement into input form.",
+                "2. LangGraph state graph executes multi-agent nodes.",
+                "3. Dashboard displays interactive tabs for research, product spec, and tech stack."
+            ]
+        },
         "current_step": "architecture"
     }
 
 def architecture_node(state: ProjectState) -> dict:
-    """Architecture Agent Node: Designs system architecture, DB schema, and APIs."""
-    print("[Agent Node: Architecture] Designing technical architecture...")
-    
-    mock_architecture = {
-        "recommended_tech_stack": {
-          "frontend": "Next.js 15 (App Router), TypeScript, Tailwind CSS",
-          "backend": "Python, FastAPI, Pydantic, SQLAlchemy",
-          "agent_framework": "LangGraph, LangChain, OpenAI / Gemini",
-          "database": "PostgreSQL with pgvector extension",
-          "deployment": "Vercel (Frontend) + Render / Railway (Backend)"
-        },
-        "system_components": [
-          {
-            "name": "Next.js Frontend Portal",
-            "role": "Single Page Application for user inputs, live progress, and blueprint rendering.",
-            "technologies": ["Next.js", "TypeScript", "Tailwind CSS"]
-          },
-          {
-            "name": "FastAPI API Server",
-            "role": "Handles /api/generate REST endpoint and serves as graph runner.",
-            "technologies": ["FastAPI", "Uvicorn", "Pydantic"]
-          },
-          {
-            "name": "LangGraph Agent Engine",
-            "role": "Stateful directed agent graph executing domain-specific synthesis nodes.",
-            "technologies": ["LangGraph", "LangChain Core"]
-          }
-        ],
-        "database_schema": [
-          {
-            "table_name": "projects",
-            "description": "Stores generated hackathon blueprints and agent state history.",
-            "columns": [
-              "id VARCHAR(36) PRIMARY KEY",
-              "problem_statement TEXT NOT NULL",
-              "research_data JSONB",
-              "product_spec JSONB",
-              "architecture_spec JSONB",
-              "created_at TIMESTAMP"
-            ]
-          }
-        ],
-        "api_endpoints": [
-          {
-            "method": "POST",
-            "path": "/api/generate",
-            "description": "Accepts problem_statement payload and returns generated ProjectState blueprint.",
-            "request_body": "{ 'problem_statement': 'string' }",
-            "response_body": "{ 'problem_statement': '...', 'research_data': {...}, 'product_spec': {...}, 'architecture_spec': {...} }"
-          }
-        ]
-    }
-    
+    """Architecture Agent Node: Invokes LLM to design system components, DB schema, and APIs."""
+    problem = state.get("problem_statement", "")
+    research = state.get("research_data", {})
+    product = state.get("product_spec", {})
+    llm = _get_llm()
+
+    if llm:
+        try:
+            print(f"[LangGraph Architecture Agent] Invoking real LLM system architecture design...")
+            prompt = f"""
+            You are a Principal Software Architect. Design a production-ready system architecture for:
+            Problem: {problem}
+            Research: {json.dumps(research)}
+            Product Spec: {json.dumps(product)}
+            
+            Respond strictly with a valid JSON object matching this schema:
+            {{
+                "recommended_tech_stack": {{
+                    "frontend": "Next.js 14, TypeScript, Tailwind CSS",
+                    "backend": "Python, FastAPI, Pydantic",
+                    "agent_framework": "LangGraph, LangChain",
+                    "database": "PostgreSQL with pgvector",
+                    "deployment": "Vercel + Render"
+                }},
+                "system_components": [
+                    {{"name": "Component 1", "role": "Role description", "technologies": ["Tech A", "Tech B"]}}
+                ],
+                "database_schema": [
+                    {{"table_name": "table_name", "description": "Table purpose", "columns": ["id UUID PK", "field String"]}}
+                ],
+                "api_endpoints": [
+                    {{"method": "POST", "path": "/api/resource", "description": "Endpoint details", "request_body": "{{}}", "response_body": "{{}}"}}
+                ]
+            }}
+            """
+            from langchain_core.messages import SystemMessage, HumanMessage
+            response = llm.invoke([
+                SystemMessage(content="You return strictly valid JSON matching the requested schema."),
+                HumanMessage(content=prompt)
+            ])
+            text = response.content.strip()
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].strip()
+
+            arch_spec = json.loads(text)
+            return {"architecture_spec": arch_spec, "current_step": "completed"}
+        except Exception as e:
+            print(f"[Architecture Agent] LLM execution error: {e}")
+
+    # Fallback
     return {
-        "architecture_spec": mock_architecture,
+        "architecture_spec": {
+            "recommended_tech_stack": {
+                "frontend": "Next.js 14 (App Router), TypeScript, Tailwind CSS",
+                "backend": "Python, FastAPI, Pydantic v2, SQLAlchemy",
+                "agent_framework": "LangGraph, LangChain, OpenAI / Gemini",
+                "database": "PostgreSQL with pgvector extension",
+                "deployment": "Vercel (Frontend) + Render / Railway (Backend)"
+            },
+            "system_components": [
+                {"name": "Frontend Web Application", "role": "User interface for problem submission and blueprint rendering.", "technologies": ["Next.js", "TypeScript", "Tailwind CSS"]},
+                {"name": "FastAPI Orchestration Backend", "role": "REST API service running LangGraph workflow.", "technologies": ["FastAPI", "Uvicorn", "SQLAlchemy"]},
+                {"name": "LangGraph Agent Engine", "role": "Stateful agent workflow graph.", "technologies": ["LangGraph", "LangChain Core"]}
+            ],
+            "database_schema": [
+                {"table_name": "blueprints", "description": "Stores generated hackathon blueprints and agent state.", "columns": ["id: UUID PRIMARY KEY", "problem_statement: TEXT", "research_data: JSONB", "product_spec: JSONB", "architecture_spec: JSONB", "created_at: TIMESTAMP"]}
+            ],
+            "api_endpoints": [
+                {"method": "POST", "path": "/api/generate", "description": "Triggers multi-agent execution and returns complete ProjectState.", "request_body": "{\"problem_statement\": \"string\"}", "response_body": "{\"research_data\": {...}, \"product_spec\": {...}, \"architecture_spec\": {...}}"}
+            ]
+        },
         "current_step": "completed"
     }
 
@@ -149,13 +244,11 @@ def create_project_graph():
     """Builds and compiles the LangGraph StateGraph workflow."""
     workflow = StateGraph(ProjectState)
 
-    # Add agent nodes
     workflow.add_node("orchestrator", orchestrator_node)
     workflow.add_node("research", research_node)
     workflow.add_node("product", product_node)
     workflow.add_node("architecture", architecture_node)
 
-    # Entry point and edges
     workflow.set_entry_point("orchestrator")
     workflow.add_edge("orchestrator", "research")
     workflow.add_edge("research", "product")
