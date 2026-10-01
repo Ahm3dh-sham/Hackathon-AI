@@ -3,24 +3,20 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { problem_statement, title, target_audience, tech_preferences } = body;
+    const { problem_statement } = body;
 
-    if (!problem_statement) {
+    if (!problem_statement || !problem_statement.trim()) {
       return NextResponse.json({ error: "Problem statement is required." }, { status: 400 });
     }
 
-    // Attempt to call Python FastAPI backend first
+    // Server-to-server HTTP call to FastAPI backend on 127.0.0.1:8000
     const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+    
     try {
-      const backendRes = await fetch(`${backendUrl}/api/blueprints`, {
+      const backendRes = await fetch(`${backendUrl}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          problem_statement,
-          title,
-          target_audience,
-          tech_preferences
-        }),
+        body: JSON.stringify({ problem_statement }),
       });
 
       if (backendRes.ok) {
@@ -28,141 +24,119 @@ export async function POST(request: Request) {
         return NextResponse.json(data);
       }
     } catch (backendErr) {
-      console.log("[Next.js Proxy API] FastAPI backend server not responding on 8000. Operating in autonomous standalone fallback mode.");
+      console.log("[Next.js Proxy API] FastAPI backend connection attempt failed. Running autonomous fallback synthesis.");
     }
 
-    // Standalone Fallback Synthesis Engine
+    // Resilient fallback state payload if backend server is unreachable
     const words = problem_statement.split(" ");
-    const generatedTitle = title || `AI Agent System: ${words.slice(0, 3).join(" ").toUpperCase()}`;
-    const prefList = tech_preferences && tech_preferences.length > 0 ? tech_preferences : ["FastAPI", "Next.js", "PostgreSQL", "LangGraph"];
+    const generatedTitle = `AI Agent Platform: ${words.slice(0, 3).join(" ").toUpperCase()}`;
 
-    const mockBlueprint = {
-      id: "blueprint-" + Math.random().toString(36).substring(2, 9),
-      title: generatedTitle,
+    return NextResponse.json({
       problem_statement: problem_statement,
-      status: "completed",
-      created_at: new Date().toISOString(),
-      problem_analysis: {
-        core_problem: `Inability to efficiently automate processes related to: '${words.slice(0, 6).join(" ")}...'. Legacy solutions suffer from manual latency, data silos, and fragmented developer workflows.`,
+      current_step: "completed",
+      research_data: {
         domain_category: "AI Multi-Agent Systems & Developer Tools",
-        target_users: [
-          target_audience || "Hackathon Participants & Startup Founders",
+        core_problem: `High manual latency and process bottlenecks associated with: '${words.slice(0, 6).join(" ")}...'. Existing tools lack real-time autonomous coordination.`,
+        target_audience: [
+          "Hackathon Participants & Startup Founders",
           "Enterprise Developers & Systems Architects",
           "Domain Specialists & Product Managers"
         ],
         key_pain_points: [
-          "Manual overhead during initial system design and hackathon scoping",
-          "Fragmented database schema design and unoptimized API contracts",
-          "Lack of autonomous agent orchestration for end-to-end blueprint generation"
+          "Time-consuming manual project setup during 24-48h hackathons",
+          "Inconsistent API contract definitions across multi-developer teams",
+          "Difficulty translating abstract problem ideas into concrete technical blueprints"
         ],
-        value_proposition: "An autonomous, stateful multi-agent system powered by LangGraph that converts raw problem statements into production-ready specifications in under 15 seconds.",
+        competitive_landscape: "Unlike static boilerplate generators, HackForge AI uses stateful multi-agent graphs to synthesize custom product & technical architecture.",
         feasibility_score: 95
       },
       product_spec: {
+        project_name: generatedTitle,
         mvp_features: [
           {
-            name: "Problem Analysis & Intent Extractor",
-            description: "Deep NLP parsing of problem statements into structured domain categories, target personas, and value metrics.",
+            name: "Problem Statement Parser",
+            description: "Interactive input interface with intent extraction and preset idea selectors.",
             priority: "MVP"
           },
           {
-            name: "LangGraph Multi-Agent Orchestrator",
-            description: "Sequential graph runner driving problem analyzer, product specifier, and architectural nodes with shared state.",
+            name: "LangGraph Stateful Agent Engine",
+            description: "Multi-agent graph running Orchestrator -> Research -> Product -> Architecture.",
             priority: "MVP"
           },
           {
-            name: "Interactive Blueprint & Export Portal",
-            description: "Dynamic Next.js UI rendering tech stack, DB schemas, API endpoints, and one-click Markdown download.",
+            name: "Blueprint Portal & PDF Exporter",
+            description: "Dashboard rendering DB schemas, API contracts, visual flowcharts, and PDF download.",
             priority: "MVP"
           }
         ],
         phase2_features: [
           {
-            name: "GitHub Repository Auto-Provisioner",
+            name: "Automated Repository Scaffolder",
             description: "Directly creates GitHub repos with initialized FastAPI + Next.js template files.",
-            priority: "Future"
-          },
-          {
-            name: "AI Code Generation Workbench",
-            description: "Generates initial database migrations and FastAPI router files based on the blueprint.",
             priority: "Future"
           }
         ],
         user_stories: [
           "As a hackathon team lead, I want to input our problem statement so that we get a complete technical spec in seconds.",
-          "As a developer, I want to review recommended API endpoints so that I can immediately start writing routes.",
-          "As a project builder, I want to export the blueprint as Markdown so that I can instantly populate my repository README."
+          "As a developer, I want to review recommended API endpoints so that I can immediately start writing routes."
         ],
         ux_workflow: [
-          "1. User submits hackathon problem statement and preferred tech stack badges.",
+          "1. User submits hackathon problem statement into input form.",
           "2. LangGraph state graph executes Problem Analysis -> Product Spec -> Tech Architecture nodes.",
-          "3. Backend saves the complete blueprint object to PostgreSQL / SQLite database.",
-          "4. Frontend renders interactive tabs with downloadable Markdown documentation."
-        ],
-        competitive_advantage: "Saves 3+ hours of initial planning per hackathon while enforcing robust architectural best practices."
+          "3. Backend returns structured JSON blueprint payload.",
+          "4. Frontend renders interactive tabs with downloadable PDF documentation."
+        ]
       },
-      technical_architecture: {
+      architecture_spec: {
         recommended_tech_stack: {
-          frontend: "Next.js 15 (App Router), TypeScript, Tailwind CSS",
+          frontend: "Next.js 14 (App Router), TypeScript, Tailwind CSS",
           backend: "Python, FastAPI, Pydantic v2, SQLAlchemy",
+          agent_framework: "LangGraph, LangChain, Google Gemini API",
           database: "PostgreSQL with pgvector extension",
-          ai_orchestration: "LangGraph, LangChain, Google Gemini API",
           deployment: "Vercel (Frontend) + Render / Railway (Backend)"
         },
         system_components: [
           {
-            name: "Frontend Portal",
-            role: "Next.js UI for inputting problem statements and visualizing blueprints.",
+            name: "Next.js Frontend Portal",
+            role: "Single Page Application for user inputs, live progress, and blueprint rendering.",
             technologies: ["Next.js", "TypeScript", "Tailwind CSS"]
           },
           {
-            name: "FastAPI REST API",
-            role: "Handles HTTP requests, DB persistence, and triggers agent graphs.",
+            name: "FastAPI REST API Gateway",
+            role: "Handles REST endpoints and serves as graph runner.",
             technologies: ["FastAPI", "Uvicorn", "SQLAlchemy"]
           },
           {
-            name: "LangGraph Agent Engine",
-            role: "Stateful agent workflow graph executing specialized LLM nodes.",
-            technologies: ["LangGraph", "LangChain", "Gemini 1.5 Flash"]
+            name: "LangGraph Multi-Agent Engine",
+            role: "Stateful agent workflow graph executing domain-specific synthesis nodes.",
+            technologies: ["LangGraph", "LangChain Core"]
           }
         ],
         database_schema: [
           {
             table_name: "blueprints",
-            description: "Stores generated project blueprints and multi-agent outputs.",
+            description: "Stores generated hackathon blueprints and multi-agent outputs.",
             columns: [
               "id: UUID PRIMARY KEY",
-              "title: VARCHAR(255) NOT NULL",
               "problem_statement: TEXT NOT NULL",
-              "problem_analysis: JSONB",
+              "research_data: JSONB",
               "product_spec: JSONB",
-              "technical_architecture: JSONB",
-              "status: VARCHAR(50)",
-              "created_at: TIMESTAMP WITH TIME ZONE"
+              "architecture_spec: JSONB",
+              "created_at: TIMESTAMP"
             ]
           }
         ],
         api_endpoints: [
           {
             method: "POST",
-            path: "/api/blueprints",
-            description: "Triggers multi-agent execution and creates a new blueprint record.",
-            request_body: "{ problem_statement: string, title?: string }",
-            response_body: "{ id: string, problem_analysis: {...}, product_spec: {...} }"
-          },
-          {
-            method: "GET",
-            path: "/api/blueprints",
-            description: "Retrieves list of all saved blueprints.",
-            request_body: "None",
-            response_body: "Array<BlueprintResponse>"
+            path: "/api/generate",
+            description: "Triggers multi-agent execution and returns complete ProjectState.",
+            request_body: "{\"problem_statement\": \"string\"}",
+            response_body: "{\"research_data\": {...}, \"product_spec\": {...}, \"architecture_spec\": {...}}"
           }
-        ],
-        deployment_strategy: "Deploy Next.js frontend to Vercel and FastAPI backend to Render with PostgreSQL database."
+        ]
       }
-    };
-
-    return NextResponse.json(mockBlueprint);
+    });
 
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to generate blueprint" }, { status: 500 });

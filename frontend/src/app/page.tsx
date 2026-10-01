@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { InputForm } from "@/components/InputForm";
 import { BlueprintDisplay, ProjectStateBlueprint } from "@/components/BlueprintDisplay";
-import { Sparkles, ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, Zap } from "lucide-react";
 
 export default function Home() {
   const [blueprintData, setBlueprintData] = useState<ProjectStateBlueprint | null>(null);
@@ -15,31 +15,22 @@ export default function Home() {
     setError(null);
 
     try {
-      // Send POST request directly to backend at http://localhost:8000/api/generate (with local proxy fallback)
-      let response: Response | null = null;
-      try {
-        response = await fetch("http://localhost:8000/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ problem_statement: problemStatement }),
-        });
-      } catch (directErr) {
-        // Fallback to Next.js API route proxy if direct CORS fetch fails
-        response = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ problem_statement: problemStatement }),
-        });
-      }
+      // Post to same-origin Next.js API proxy route /api/generate
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ problem_statement: problemStatement }),
+      });
 
-      if (!response || !response.ok) {
-        throw new Error("Backend generation failed. Please verify FastAPI server is running on http://localhost:8000.");
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || "Generation failed. Please try again.");
       }
 
       const data: ProjectStateBlueprint = await response.json();
       setBlueprintData(data);
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred while running the agent graph.");
+      setError(err.message || "An unexpected error occurred while generating the blueprint.");
     } finally {
       setIsLoading(false);
     }
