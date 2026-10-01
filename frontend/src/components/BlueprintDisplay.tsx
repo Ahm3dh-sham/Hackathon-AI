@@ -13,7 +13,9 @@ import {
   Server,
   Database,
   Sparkles,
-  ShieldCheck
+  Printer,
+  Globe,
+  ArrowRight
 } from "lucide-react";
 
 export interface ProjectStateBlueprint {
@@ -66,16 +68,252 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({ data, onRese
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadMarkdown = () => {
-    const md = generateMarkdown(data);
-    const blob = new Blob([md], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${title.replace(/[^a-zA-Z0-9]/g, "_")}_Blueprint.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleExportPDF = () => {
+    // Open print window configured specifically for PDF export
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Please allow popups to generate the PDF file.");
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title} - HackForge AI Blueprint</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #1f2937;
+            background: #ffffff;
+            line-height: 1.6;
+          }
+          .header {
+            border-bottom: 3px solid #4f46e5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          h1 {
+            color: #111827;
+            margin: 10px 0 5px 0;
+            font-size: 28px;
+          }
+          .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+          }
+          .section {
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+          }
+          .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #4f46e5;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+          }
+          .card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 15px;
+          }
+          .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+          }
+          .diagram-box {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+          }
+          .diagram-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            margin-top: 15px;
+          }
+          .node {
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+          }
+          .arrow {
+            color: #94a3b8;
+            font-size: 18px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }
+          th, td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+            text-align: left;
+            font-size: 13px;
+          }
+          th {
+            background: #f3f4f6;
+            font-weight: 700;
+          }
+          .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 11px;
+            color: #9ca3af;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+          }
+          @media print {
+            body { padding: 20px; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <span class="badge">${data.research_data?.domain_category || "Hackathon Project Blueprint"}</span>
+          <h1>${title}</h1>
+          <p class="subtitle"><strong>Problem Statement:</strong> ${data.problem_statement}</p>
+        </div>
+
+        <!-- Section 1: Research Analysis -->
+        <div class="section">
+          <div class="section-title">1. Problem & Market Research Analysis</div>
+          <div class="card">
+            <strong>Core Problem:</strong>
+            <p>${data.research_data?.core_problem || "Analysis completed."}</p>
+            <strong>Feasibility Score:</strong> ${data.research_data?.feasibility_score || 92}/100
+          </div>
+          <div class="grid">
+            <div class="card">
+              <strong>Target Users:</strong>
+              <ul>
+                ${data.research_data?.target_audience?.map((u) => `<li>${u}</li>`).join("") || "<li>Developers & End-Users</li>"}
+              </ul>
+            </div>
+            <div class="card">
+              <strong>Key Pain Points Addressed:</strong>
+              <ul>
+                ${data.research_data?.key_pain_points?.map((p) => `<li>${p}</li>`).join("") || "<li>Manual overhead & friction</li>"}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Architecture Diagram -->
+        <div class="section">
+          <div class="section-title">2. System Architecture Workflow Diagram</div>
+          <div class="diagram-box">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #a5b4fc;">
+              System Topology & Data Flow
+            </div>
+            <div class="diagram-flow">
+              <div class="node">User Web Portal</div>
+              <div class="arrow">➔</div>
+              <div class="node">FastAPI Gateway</div>
+              <div class="arrow">➔</div>
+              <div class="node">LangGraph Multi-Agent Engine</div>
+              <div class="arrow">➔</div>
+              <div class="node">PostgreSQL & LLM</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Product Specification -->
+        <div class="section">
+          <div class="section-title">3. Product Specification & MVP Features</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Feature Name</th>
+                <th>Description</th>
+                <th>Priority</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.product_spec?.mvp_features
+                ?.map(
+                  (f) => `
+                <tr>
+                  <td><strong>${f.name}</strong></td>
+                  <td>${f.description}</td>
+                  <td><span class="badge">${f.priority}</span></td>
+                </tr>
+              `
+                )
+                .join("") || ""}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 4: Technical Architecture & DB Schema -->
+        <div class="section">
+          <div class="section-title">4. Technical Architecture & Database Schemas</div>
+          <div class="card">
+            <strong>Recommended Tech Stack:</strong>
+            <ul>
+              ${Object.entries(data.architecture_spec?.recommended_tech_stack || {})
+                .map(([k, v]) => `<li><strong>${k.replace("_", " ")}:</strong> ${v}</li>`)
+                .join("")}
+            </ul>
+          </div>
+
+          <strong>Database Tables:</strong>
+          ${data.architecture_spec?.database_schema
+            ?.map(
+              (tbl) => `
+            <div class="card">
+              <strong>Table: <code>${tbl.table_name}</code></strong> - ${tbl.description}
+              <div style="margin-top: 8px; font-family: monospace; font-size: 12px; color: #4b5563;">
+                ${tbl.columns?.map((c) => `<div>• ${c}</div>`).join("")}
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+          Generated by <strong>HackForge AI Platform</strong> — Autonomous LangGraph Multi-Agent Engine
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   return (
@@ -111,12 +349,14 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({ data, onRese
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? "Copied!" : "Copy MD"}
           </button>
+          
+          {/* PDF Export Button */}
           <button
-            onClick={handleDownloadMarkdown}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 transition-all"
+            onClick={handleExportPDF}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-600/20 transition-all border border-indigo-500/30"
           >
-            <Download className="w-3.5 h-3.5" />
-            Export Blueprint (.md)
+            <Printer className="w-3.5 h-3.5" />
+            Export Blueprint (.pdf)
           </button>
         </div>
       </div>
@@ -261,9 +501,40 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({ data, onRese
         </div>
       )}
 
-      {/* Tab 3: Technical Architecture */}
+      {/* Tab 3: Technical Architecture & Visual Diagrams */}
       {activeTab === "architecture" && (
         <div className="space-y-6">
+          {/* Visual Architecture Flowchart Diagram */}
+          <div className="glass-panel p-6 rounded-2xl border border-gray-800 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-indigo-400" /> Visual System Architecture Flowchart
+            </h3>
+
+            <div className="p-6 rounded-xl bg-gray-950 border border-gray-800">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center">
+                <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 w-full sm:w-auto">
+                  <span className="text-xs font-bold text-indigo-300 block">User Web App</span>
+                  <span className="text-[10px] text-gray-400">Next.js 14 UI</span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-indigo-400 hidden sm:block" />
+                <div className="p-3.5 rounded-xl bg-violet-500/10 border border-violet-500/30 w-full sm:w-auto">
+                  <span className="text-xs font-bold text-violet-300 block">FastAPI Server</span>
+                  <span className="text-[10px] text-gray-400">API Gateway & Routes</span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-violet-400 hidden sm:block" />
+                <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 w-full sm:w-auto">
+                  <span className="text-xs font-bold text-purple-300 block">LangGraph Engine</span>
+                  <span className="text-[10px] text-gray-400">Multi-Agent Workflow</span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-purple-400 hidden sm:block" />
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 w-full sm:w-auto">
+                  <span className="text-xs font-bold text-emerald-300 block">PostgreSQL / LLM</span>
+                  <span className="text-[10px] text-gray-400">State Persistence</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="glass-panel p-6 rounded-2xl border border-gray-800">
             <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
               <Server className="w-4 h-4 text-indigo-400" /> Recommended Tech Stack
@@ -282,7 +553,7 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({ data, onRese
 
           <div className="glass-panel p-6 rounded-2xl border border-gray-800 space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Database className="w-4 h-4 text-emerald-400" /> Database Schema
+              <Database className="w-4 h-4 text-emerald-400" /> Database Schema & Entity Relational Design
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {data.architecture_spec?.database_schema?.map((tbl, idx) => (
