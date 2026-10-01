@@ -1,91 +1,134 @@
-# HackForge AI — Autonomous Multi-Agent AI Platform
+# ⚔️ HackForge AI — Autonomous Multi-Agent Project Blueprint
 
-HackForge AI is an autonomous multi-agent platform designed for hackathons. It transforms a raw hackathon problem statement into a comprehensive project blueprint encompassing **Problem Analysis**, **Product Specification**, and **Technical Architecture**.
+> **Transforming Hackathon Problem Statements into Complete Technical Blueprints in Seconds.**
 
----
-
-## 🌟 Tech Stack
-
-### **Backend**
-* **Framework:** Python, FastAPI, Uvicorn
-* **Agent Engine:** LangGraph, LangChain, Google Gemini API
-* **Data Modeling:** Pydantic v2
-* **ORM & Database:** SQLAlchemy, SQLite (default) / PostgreSQL (with `pgvector`)
-
-### **Frontend**
-* **Framework:** Next.js 15 (App Router), React 19, TypeScript
-* **Styling:** Tailwind CSS, Glassmorphism design system
-* **Icons:** Lucide React
+![Version](https://img.shields.io/badge/version-1.0.0-indigo.svg)
+![Framework](https://img.shields.io/badge/LangGraph-Stateful_Agents-purple.svg)
+![Backend](https://img.shields.io/badge/FastAPI-0.110-emerald.svg)
+![Frontend](https://img.shields.io/badge/Next.js-14_App_Router-black.svg)
+![Database](https://img.shields.io/badge/PostgreSQL-pgvector-blue.svg)
 
 ---
 
-## 📁 Repository Structure
+## 📋 Executive Overview
 
-```text
-hackforge-ai/
-├── backend/
-│   ├── app/
-│   │   ├── agents/          # LangGraph state graph, nodes, state schemas
-│   │   │   ├── nodes/       # problem_analyzer.py, product_specifier.py, architect.py
-│   │   │   ├── graph.py     # StateGraph workflow runner
-│   │   │   └── state.py     # AgentState definition
-│   │   ├── api/             # REST endpoints (routes.py)
-│   │   ├── core/            # Environment settings (config.py)
-│   │   ├── models/          # SQLAlchemy database tables (database.py)
-│   │   └── schemas/         # Pydantic schemas (pydantic_models.py)
-│   ├── main.py              # FastAPI server entrypoint
-│   └── requirements.txt
-└── frontend/
-    ├── src/
-    │   ├── app/             # page.tsx, layout.tsx, globals.css, api/
-    │   ├── components/      # InputForm.tsx, BlueprintDisplay.tsx
-    ├── package.json
-    ├── tailwind.config.ts
-    └── tsconfig.json
-```
+**HackForge AI** is an autonomous multi-agent platform designed for hackathons and rapid prototyping. It ingests raw hackathon problem statements and orchestrates specialized **LangGraph stateful agents** to synthesize:
+
+1. **Problem Analysis & Market Feasibility**
+2. **Product Specification & Feature Roadmap (MVP vs Phase 2)**
+3. **Technical Architecture (Microservices, Database Schemas & REST APIs)**
 
 ---
 
-## 🚀 Quick Start Guide
-
-### 1. Run the Backend API
-
-```bash
-cd backend
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-# source venv/bin/activate
-
-pip install -r requirements.txt
-python main.py
-```
-
-The FastAPI backend will start at `http://localhost:8000`. Access Swagger UI docs at `http://localhost:8000/docs`.
-
-### 2. Run the Frontend App
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The Next.js frontend will run at `http://localhost:3000`.
-
----
-
-## 🤖 Multi-Agent Workflow Engine
+## 🤖 Multi-Agent Workflow Graph
 
 ```mermaid
 flowchart LR
-    A[Problem Input] --> B[Problem Analyzer Node]
-    B --> C[Product Specifier Node]
-    C --> D[Technical Architect Node]
-    D --> E[Complete Project Blueprint & DB Storage]
+    A["Input Problem Statement"] --> B["Orchestrator Agent"]
+    B --> C["Research Agent"]
+    C --> D["Product Specifier Agent"]
+    D --> E["Technical Architect Agent"]
+    E --> F["Complete Project Blueprint & DB Storage"]
 ```
 
-1. **Problem Analyzer Node**: Extracts core problem, target audience, pain points, value proposition, and hackathon feasibility score.
-2. **Product Specifier Node**: Constructs MVP core features (24-48h scope), Phase 2 roadmap, key user stories, and UX workflow.
-3. **Technical Architect Node**: Designs recommended tech stack, microservices/components, database schema, and REST API contracts.
+### Agent Responsibilities
+* **Orchestrator Agent:** Validates input parameters, initializes graph execution state, and coordinates agent transitions.
+* **Research Agent:** Performs domain classification, analyzes root causes, identifies target user personas, and evaluates hackathon feasibility scores.
+* **Product Specifier Agent:** Generates 24-48h MVP core features, post-hackathon roadmap, key user stories, and UX workflows.
+* **Technical Architect Agent:** Formulates recommended technology stacks, designs relational entity database schemas, and drafts REST API endpoint contracts.
+
+---
+
+## 📊 Sample Generated Blueprint: HackForge AI Platform
+
+### 1. Research Analysis
+* **Domain Category:** AI Multi-Agent Systems & Developer Automation Tools
+* **Feasibility Score:** **92/100**
+* **Core Problem:** Manual setup and planning consume 30%+ of time during 24-48 hour hackathons. Teams struggle to align on database schemas, feature scoping, and API contracts early.
+* **Target Audience:** Hackathon Participants, Startup Founders, Software Architects, and DevOps Teams.
+* **Unique Value Proposition:** Eliminates initial planning friction by generating production-ready technical architecture specs in under 15 seconds.
+
+### 2. Product Specification
+
+#### MVP Features (24-48h Scope)
+* **Problem Statement Parser:** Interactive input portal with real-time intent extraction and customizable preset ideas.
+* **Stateful LangGraph Engine:** 4-node execution graph supporting sequential and parallel multi-agent synthesis.
+* **Interactive Blueprint Visualizer:** Rich tabbed dashboard displaying research cards, database schemas, and REST API definitions.
+* **Markdown Exporter:** One-click generation and download of complete `BLUEPRINT.md` files.
+
+#### Phase 2 Features
+* **Automated GitHub Scaffolder:** One-click creation of pre-configured GitHub repositories with Docker & CI/CD workflows.
+* **AI Code Workbench:** Automated boilerplate generation for FastAPI routes and SQLAlchemy models.
+
+#### Key User Stories
+* *"As a hackathon team lead, I want to input our problem statement so that my team gets an instant technical architecture spec."*
+* *"As a developer, I want to review recommended API contracts and database schemas so I can start coding routes immediately."*
+
+---
+
+## 🏗️ Technical Architecture Specification
+
+### Recommended Tech Stack
+| Tier | Technology | Description |
+|---|---|---|
+| **Frontend** | **Next.js 14 (App Router)** | TypeScript, Tailwind CSS, Lucide Icons |
+| **Backend** | **Python & FastAPI** | Uvicorn, Pydantic v2, Async HTTP |
+| **AI Orchestration** | **LangGraph & LangChain** | Stateful Directed Agent Graph |
+| **Database** | **PostgreSQL / SQLite** | SQLAlchemy ORM with `pgvector` extension |
+| **Deployment** | **Vercel & Render** | Global CDN Frontend + Async Microservices |
+
+### Database Schema Design (`blueprints` Table)
+```sql
+CREATE TABLE blueprints (
+    id VARCHAR(36) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    problem_statement TEXT NOT NULL,
+    problem_analysis JSONB,
+    product_spec JSONB,
+    technical_architecture JSONB,
+    status VARCHAR(50) DEFAULT 'completed',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### REST API Contracts
+
+#### `POST /api/generate`
+Triggers the multi-agent graph execution pipeline.
+* **Request Body:**
+  ```json
+  {
+    "problem_statement": "Build an autonomous AI agent for medical triage"
+  }
+  ```
+* **Response:** Returns complete `ProjectState` payload containing `research_data`, `product_spec`, and `architecture_spec`.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/Ahm3dh-sham/Hackathon-AI.git
+cd Hackathon-AI
+```
+
+### 2. Run Backend (FastAPI)
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+```
+*API running at `http://localhost:8000` | Swagger Docs at `http://localhost:8000/docs`*
+
+### 3. Run Frontend (Next.js)
+```bash
+cd frontend
+npm install --legacy-peer-deps
+npm run dev
+```
+*Web App running at `http://localhost:3000` or `http://127.0.0.1:3000`*
+
+---
+*Built with ❤️ for Hackathons using LangGraph, FastAPI, and Next.js.*
