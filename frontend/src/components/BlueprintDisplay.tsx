@@ -17,6 +17,21 @@ import {
   ArrowRight,
   Terminal
 } from "lucide-react";
+import { CarouselNavigator } from "@/components/carousel-navigator";
+
+const TAB_ORDER: Array<"research" | "product" | "architecture" | "prompt"> = [
+  "research",
+  "product",
+  "architecture",
+  "prompt",
+];
+
+const TAB_LABELS: Record<"research" | "product" | "architecture" | "prompt", string> = {
+  research: "Research Analysis",
+  product: "Product Specification",
+  architecture: "Technical Architecture",
+  prompt: "Builder Prompt",
+};
 
 export interface ProjectStateBlueprint {
   problem_statement: string;
@@ -59,6 +74,12 @@ interface BlueprintDisplayProps {
 export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({ data, onReset }) => {
   const [activeTab, setActiveTab] = useState<"research" | "product" | "architecture" | "prompt">("research");
   const [promptCopied, setPromptCopied] = useState(false);
+
+  const currentTabIndex = TAB_ORDER.indexOf(activeTab);
+  const handleCarouselIndexChange = (index: number) => {
+    const nextTab = TAB_ORDER[index];
+    if (nextTab) setActiveTab(nextTab);
+  };
 
   const title = data.product_spec?.project_name || "Hackathon Project Blueprint";
   const masterPrompt = data.builderPrompt || buildFallbackPrompt(data);
@@ -378,51 +399,61 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({ data, onRese
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-gray-800 gap-2 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("research")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-            activeTab === "research"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-gray-400 hover:text-gray-200"
-          }`}
-        >
-          <FileText className="w-4 h-4" /> Research Analysis
-        </button>
+      {/* Navigation Tabs + Watermelon Carousel Navigator */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-gray-800 gap-3 pb-2 lg:pb-0">
+        <div className="flex gap-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("research")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "research"
+                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <FileText className="w-4 h-4" /> Research Analysis
+          </button>
 
-        <button
-          onClick={() => setActiveTab("product")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-            activeTab === "product"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-gray-400 hover:text-gray-200"
-          }`}
-        >
-          <Layers className="w-4 h-4" /> Product Specification
-        </button>
+          <button
+            onClick={() => setActiveTab("product")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "product"
+                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <Layers className="w-4 h-4" /> Product Specification
+          </button>
 
-        <button
-          onClick={() => setActiveTab("architecture")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-            activeTab === "architecture"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-gray-400 hover:text-gray-200"
-          }`}
-        >
-          <Cpu className="w-4 h-4" /> Technical Architecture
-        </button>
+          <button
+            onClick={() => setActiveTab("architecture")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "architecture"
+                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <Cpu className="w-4 h-4" /> Technical Architecture
+          </button>
 
-        <button
-          onClick={() => setActiveTab("prompt")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-            activeTab === "prompt"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-gray-400 hover:text-gray-200"
-          }`}
-        >
-          <Terminal className="w-4 h-4" /> Builder Prompt
-        </button>
+          <button
+            onClick={() => setActiveTab("prompt")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "prompt"
+                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <Terminal className="w-4 h-4" /> Builder Prompt
+          </button>
+        </div>
+
+        <div className="flex items-center justify-end shrink-0 pb-1.5">
+          <CarouselNavigator
+            totalSlides={TAB_ORDER.length}
+            currentIndex={currentTabIndex}
+            onIndexChange={handleCarouselIndexChange}
+          />
+        </div>
       </div>
 
       {/* Tab 1: Research Analysis */}
@@ -660,6 +691,20 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({ data, onRese
           </div>
         </div>
       )}
+
+      {/* Bottom Carousel Tab Navigator */}
+      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 px-2">
+        <div className="text-xs font-mono text-gray-400">
+          Viewing Tab <span className="text-white font-bold">{currentTabIndex + 1}</span> of{" "}
+          <span className="text-white font-bold">{TAB_ORDER.length}</span>:{" "}
+          <span className="text-indigo-400 font-semibold">{TAB_LABELS[activeTab]}</span>
+        </div>
+        <CarouselNavigator
+          totalSlides={TAB_ORDER.length}
+          currentIndex={currentTabIndex}
+          onIndexChange={handleCarouselIndexChange}
+        />
+      </div>
     </div>
   );
 };
