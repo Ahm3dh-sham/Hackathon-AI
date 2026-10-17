@@ -102,11 +102,12 @@ Please implement the following core features completely (no placeholders or mock
 ---
 
 ## 4. Page Layout & UI/UX Guidelines
-- **Design System**: Modern dark-mode glassmorphic UI using Tailwind CSS, Lucide Icons, and clean typography.
-- **Navigation & Layout**: Responsive top navigation bar with project branding, status badge, and intuitive tabbed or split-pane workspace.
+- **Design System**: Refined Editorial aesthetic (Warm Linen `#f7f4ed`, Ivory Paper `#fffdf8`, Aged Brass `#80643d`, and Heritage Forest Green `#394b3f`) with `Cormorant Garamond`, `Manrope`, and `DM Mono` typography, Tailwind CSS, and Lucide Icons.
+- **Animations & Interactive Polish**: Smooth entrance transitions (GSAP), interactive spotlight cards (React Bits), subtle 3D particle canvas (Vanta / Three.js), and responsive carousel tab navigation (Watermelon UI).
+- **Navigation & Layout**: Sticky glass/linen top navigation bar with project branding, status badge, and intuitive tabbed or split-pane workspace.
 - **Interactive User Flow**:
 {workflow_block}
-- **States & Feedback**: Include loading spinners, skeleton states, error banners with dismiss actions, and empty-state illustrations.
+- **States & Feedback**: Include loading spinners, step-by-step progress indicators, error banners with dismiss actions, and one-click PDF/Prompt export.
 
 ---
 
