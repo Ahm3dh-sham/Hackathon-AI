@@ -365,7 +365,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= GENERATED LIVE BLUEPRINT DISPLAY (When generated) ================= */}
+      {/* ================= GENERATED LIVE BLUEPRINT DISPLAY (Editorial Studio Dossier) ================= */}
       {blueprintData && (
         <section
           ref={liveBlueprintRef}
@@ -377,14 +377,31 @@ export default function Home() {
               onClick={() => setBlueprintData(null)}
               className="inline-flex items-center gap-2 text-xs font-bold text-[#394b3f] hover:text-[#68512f] transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" /> Close Blueprint Output
+              <ArrowLeft className="w-4 h-4" /> Close Blueprint Dossier
             </button>
-            <span className="font-mono text-xs text-[#725a36]">
-              LIVE LANGGRAPH MULTI-AGENT OUTPUT
+            <span className="font-mono text-[10px] tracking-[0.12em] text-[#725a36] uppercase">
+              HACKFORGE / GENERATED ARCHITECTURE DOSSIER
             </span>
           </div>
-          <div className="p-6 rounded-2xl bg-[#090d16] text-gray-100 shadow-2xl border border-[#d9d0c2]">
-            <BlueprintDisplay data={blueprintData} onReset={() => setBlueprintData(null)} />
+
+          <div className="border border-[#d9d0c2] bg-[#fffdf8] shadow-[0_28px_72px_rgba(61,51,37,0.14)] overflow-hidden">
+            <div className="preview-topbar">
+              <div className="window-controls" aria-hidden="true">
+                <i></i>
+                <i></i>
+                <i></i>
+              </div>
+              <span className="preview-app-title">
+                <span className="mini-mark">H</span> HACKFORGE{" "}
+                <span className="muted-slash">/</span> PROJECT BLUEPRINT DOSSIER
+              </span>
+              <span className="demo-badge">
+                <span></span> VERIFIED OUTPUT
+              </span>
+            </div>
+            <div className="p-6 sm:p-8 bg-[#f7f4ed]/60">
+              <BlueprintDisplay data={blueprintData} onReset={() => setBlueprintData(null)} />
+            </div>
           </div>
         </section>
       )}

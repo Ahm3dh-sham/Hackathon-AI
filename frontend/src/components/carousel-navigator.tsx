@@ -22,30 +22,31 @@ interface CarouselNavigatorProps {
 const DEFAULT_TOTAL_SLIDES = 4;
 const DEFAULT_AUTO_DELAY = 5000;
 
+// Editorial Old-Money Warm Linen, Aged Brass & Heritage Green Themes
 const DEFAULT_THEMES: ThemeConfig[] = [
   {
-    bg: 'rgba(30, 27, 75, 0.75)',
-    button: 'bg-indigo-600 hover:bg-indigo-500',
-    dot: 'bg-indigo-950 border border-indigo-500/40',
-    progress: 'bg-indigo-500/40',
+    bg: '#eee9df',
+    button: 'bg-[#80643d] hover:bg-[#68512f]',
+    dot: 'bg-[#d8d0c1] border border-[#b9a784]',
+    progress: 'bg-[#c9b99d]',
   },
   {
-    bg: 'rgba(59, 7, 100, 0.75)',
-    button: 'bg-purple-600 hover:bg-purple-500',
-    dot: 'bg-purple-950 border border-purple-500/40',
-    progress: 'bg-purple-500/40',
+    bg: '#e8ede3',
+    button: 'bg-[#526a56] hover:bg-[#394b3f]',
+    dot: 'bg-[#c7d2c0] border border-[#9cab95]',
+    progress: 'bg-[#9cab95]',
   },
   {
-    bg: 'rgba(6, 78, 59, 0.75)',
-    button: 'bg-emerald-600 hover:bg-emerald-500',
-    dot: 'bg-emerald-950 border border-emerald-500/40',
-    progress: 'bg-emerald-500/40',
+    bg: '#e9e4d9',
+    button: 'bg-[#394b3f] hover:bg-[#4c604f]',
+    dot: 'bg-[#d2cabb] border border-[#a39b8b]',
+    progress: 'bg-[#80643d]/40',
   },
   {
-    bg: 'rgba(69, 26, 3, 0.75)',
-    button: 'bg-amber-600 hover:bg-amber-500',
-    dot: 'bg-amber-950 border border-amber-500/40',
-    progress: 'bg-amber-500/40',
+    bg: '#f1ecdf',
+    button: 'bg-[#68512f] hover:bg-[#80643d]',
+    dot: 'bg-[#d7ccb8] border border-[#b9a784]',
+    progress: 'bg-[#b9a784]',
   },
 ];
 
@@ -68,7 +69,7 @@ export const CarouselNavigator: FC<CarouselNavigatorProps> = ({
       animate={{
         backgroundColor: theme.bg.replace('bg-[', '').replace(']', ''),
       }}
-      className="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 border border-white/10 backdrop-blur-md shadow-lg transition-colors duration-300"
+      className="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 border border-[#d8d0c1] shadow-sm transition-colors duration-300"
     >
       <ArrowButton
         onClick={goPrev}
@@ -76,7 +77,7 @@ export const CarouselNavigator: FC<CarouselNavigatorProps> = ({
         disabled={currentIndex === 0}
         ariaLabel="Previous tab"
       >
-        <ChevronLeft size={18} strokeWidth={3} />
+        <ChevronLeft size={16} strokeWidth={2.5} />
       </ArrowButton>
 
       <div className="flex items-center gap-2 px-2">
@@ -96,7 +97,7 @@ export const CarouselNavigator: FC<CarouselNavigatorProps> = ({
         themeColor={theme.button}
         ariaLabel="Next tab"
       >
-        <ChevronRight size={18} strokeWidth={3} />
+        <ChevronRight size={16} strokeWidth={2.5} />
       </ArrowButton>
     </motion.div>
   );
@@ -109,9 +110,11 @@ const ArrowButton = ({ children, onClick, themeColor, disabled, ariaLabel }: any
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      whileTap={disabled ? undefined : { scale: 0.9 }}
-      className={`flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm transition-colors duration-300 ${
-        disabled ? 'bg-gray-800 text-gray-500 opacity-50 cursor-not-allowed' : `${themeColor} cursor-pointer`
+      whileTap={disabled ? undefined : { scale: 0.92 }}
+      className={`flex h-8 w-8 items-center justify-center rounded-full text-[#fffdf8] shadow-sm transition-colors duration-300 ${
+        disabled
+          ? 'bg-[#dcd4c8] text-[#8b8478] opacity-60 cursor-not-allowed'
+          : `${themeColor} cursor-pointer`
       }`}
     >
       {children}
@@ -146,10 +149,9 @@ const Indicator = ({
           initial={{ width: '0%' }}
           animate={{ width: '100%' }}
           transition={{ duration: autoDelay / 1000, ease: 'linear' }}
-          className="absolute inset-0 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+          className="absolute inset-0 rounded-full bg-[#394b3f] shadow-[0_0_6px_rgba(57,75,63,0.4)]"
         />
       )}
     </motion.button>
   );
 };
-
