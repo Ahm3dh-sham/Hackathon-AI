@@ -52,9 +52,7 @@ export default function Home() {
           </span>
         </h1>
 
-        <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
-          Input your hackathon problem statement to trigger Orchestrator $\rightarrow$ Research $\rightarrow$ Product $\rightarrow$ Architecture agents.
-        </p>
+
       </div>
 
       {/* Main Container */}
