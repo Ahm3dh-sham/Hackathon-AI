@@ -24,6 +24,99 @@ def _get_genai_client():
             print(f"[GenAI Client Warning] {e}")
     return None
 
+def _synthesize_master_prompt(
+    problem: str,
+    research: Dict[str, Any],
+    product: Dict[str, Any],
+    architecture: Dict[str, Any]
+) -> str:
+    """Dynamically builds a comprehensive AI Coding Master Prompt from the generated specs."""
+    project_name = product.get("project_name", "Hackathon MVP Application")
+    domain = research.get("domain_category", "Full-Stack Web Application")
+    core_problem = research.get("core_problem", problem)
+    target_audience = ", ".join(research.get("target_audience", ["End Users", "Developers"]))
+    
+    mvp_features = product.get("mvp_features", [])
+    features_block = "\n".join(
+        [f"- **{f.get('name')}** ({f.get('priority', 'MVP')}): {f.get('description')}" for f in mvp_features]
+    ) or "- Core interactive dashboard and workflow engine"
+
+    user_stories = product.get("user_stories", [])
+    stories_block = "\n".join([f"- {s}" for s in user_stories]) or "- As a user, I can interact with the core features seamlessly."
+
+    ux_workflow = product.get("ux_workflow", [])
+    workflow_block = "\n".join([f"{i+1}. {w}" for i, w in enumerate(ux_workflow)]) or "1. User lands on dashboard and submits input.\n2. System processes and renders visual output."
+
+    tech_stack = architecture.get("recommended_tech_stack", {})
+    stack_block = "\n".join([f"- **{k.replace('_', ' ').title()}**: {v}" for k, v in tech_stack.items()])
+
+    components = architecture.get("system_components", [])
+    comp_block = "\n".join(
+        [f"- **{c.get('name')}**: {c.get('role')} (Tech: {', '.join(c.get('technologies', []))})" for c in components]
+    )
+
+    db_schema = architecture.get("database_schema", [])
+    db_block = "\n".join(
+        [f"- Table `{t.get('table_name')}` ({t.get('description')}): {', '.join(t.get('columns', []))}" for t in db_schema]
+    )
+
+    endpoints = architecture.get("api_endpoints", [])
+    api_block = "\n".join(
+        [f"- `{ep.get('method')} {ep.get('path')}`: {ep.get('description')}" for ep in endpoints]
+    )
+
+    return f"""# Role & Objective
+You are an expert Full-Stack AI Engineer and Systems Architect. Build a complete, production-ready web application called **"{project_name}"** ({domain}).
+
+---
+
+## 1. Project Context & Problem Statement
+- **Original Problem Statement**: {problem}
+- **Core Problem Addressed**: {core_problem}
+- **Target Users**: {target_audience}
+
+---
+
+## 2. Core MVP Features to Implement
+Please implement the following core features completely (no placeholders or mock stubs):
+{features_block}
+
+### Key User Stories
+{stories_block}
+
+---
+
+## 3. Tech Stack & System Architecture
+### Recommended Tech Stack
+{stack_block}
+
+### System Components
+{comp_block}
+
+### Database Schema Design
+{db_block}
+
+### REST API Endpoints
+{api_block}
+
+---
+
+## 4. Page Layout & UI/UX Guidelines
+- **Design System**: Modern dark-mode glassmorphic UI using Tailwind CSS, Lucide Icons, and clean typography.
+- **Navigation & Layout**: Responsive top navigation bar with project branding, status badge, and intuitive tabbed or split-pane workspace.
+- **Interactive User Flow**:
+{workflow_block}
+- **States & Feedback**: Include loading spinners, skeleton states, error banners with dismiss actions, and empty-state illustrations.
+
+---
+
+## 5. Step-by-Step Build Instructions
+1. **Project Setup & Configuration**: Initialize the monorepo or full-stack project structure with clean environment configuration and dependency files.
+2. **Database & Models Layer**: Implement the database schema, ORM models, and data validation schemas (Pydantic / TypeScript interfaces).
+3. **Backend API & Business Logic**: Build all REST API routes, core processing logic, and error handling middleware.
+4. **Frontend Components & State Management**: Build the landing dashboard, interactive input forms, data visualization cards, and real-time state integration with the backend API.
+5. **End-to-End Polish**: Verify all user flows, responsive layout breakpoints, and export/action capabilities. Write production-ready, modular, and well-documented code."""
+
 def orchestrator_node(state: ProjectState) -> dict:
     """Orchestrator Agent Node."""
     statement = state.get('problem_statement', '').encode('utf-8', errors='replace').decode('utf-8')
@@ -206,7 +299,7 @@ def architecture_node(state: ProjectState) -> dict:
                 text = text.split("```")[1].strip()
 
             arch_spec = json.loads(text)
-            return {"architecture_spec": arch_spec, "current_step": "completed"}
+            return {"architecture_spec": arch_spec, "current_step": "prompt_generator"}
         except Exception as e:
             safe_err = str(e).encode('utf-8', errors='replace').decode('utf-8')
             print(f"[Architecture Agent Warning] Fallback used: {safe_err}")
@@ -232,6 +325,20 @@ def architecture_node(state: ProjectState) -> dict:
                 {"method": "POST", "path": "/api/generate", "description": "Triggers multi-agent execution and returns complete ProjectState.", "request_body": "{\"problem_statement\": \"string\"}", "response_body": "{\"research_data\": {...}, \"product_spec\": {...}, \"architecture_spec\": {...}}"}
             ]
         },
+        "current_step": "prompt_generator"
+    }
+
+def prompt_generator_node(state: ProjectState) -> dict:
+    """Prompt Generator Agent Node: Synthesizes the complete AI Builder Master Prompt."""
+    print(f"[LangGraph Prompt Generator Agent] Compiling comprehensive builderPrompt...")
+    problem = state.get("problem_statement", "")
+    research = state.get("research_data", {})
+    product = state.get("product_spec", {})
+    architecture = state.get("architecture_spec", {})
+
+    builder_prompt = _synthesize_master_prompt(problem, research, product, architecture)
+    return {
+        "builderPrompt": builder_prompt,
         "current_step": "completed"
     }
 
@@ -242,12 +349,14 @@ def create_project_graph():
     workflow.add_node("research", research_node)
     workflow.add_node("product", product_node)
     workflow.add_node("architecture", architecture_node)
+    workflow.add_node("prompt_generator", prompt_generator_node)
 
     workflow.set_entry_point("orchestrator")
     workflow.add_edge("orchestrator", "research")
     workflow.add_edge("research", "product")
     workflow.add_edge("product", "architecture")
-    workflow.add_edge("architecture", END)
+    workflow.add_edge("architecture", "prompt_generator")
+    workflow.add_edge("prompt_generator", END)
 
     return workflow.compile()
 
@@ -259,6 +368,7 @@ def run_project_workflow(problem_statement: str) -> dict:
         "research_data": {},
         "product_spec": {},
         "architecture_spec": {},
+        "builderPrompt": "",
         "current_step": "started"
     }
     return project_graph.invoke(initial_state)
