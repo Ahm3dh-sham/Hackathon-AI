@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { FcGoogle } from "react-icons/fc";
-import { Cpu, Sparkles, CheckCircle2 } from "lucide-react";
+import { Cpu, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface LoginFormProps {
   brandName?: string;
@@ -19,6 +19,26 @@ interface LoginFormProps {
   onCreateAccount?: () => void;
   copyrightYear?: number;
   footerLinks?: { label: string; href: string }[];
+}
+
+/**
+ * Validates that an email address is properly formatted with a valid local part,
+ * domain name, and top-level domain (e.g. user@example.com).
+ */
+function isValidEmail(raw: string): boolean {
+  const value = raw.trim();
+  if (!value) return false;
+  if (value.includes("..")) return false;
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(value)) return false;
+
+  const [localPart, domainPart] = value.split("@");
+  if (!localPart || !domainPart) return false;
+  if (localPart.startsWith(".") || localPart.endsWith(".")) return false;
+  if (domainPart.startsWith("-") || domainPart.endsWith("-")) return false;
+
+  return true;
 }
 
 export default function LoginPage({
@@ -40,15 +60,33 @@ export default function LoginPage({
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setEmail(val);
+    if (emailError && isValidEmail(val)) {
+      setEmailError(null);
+    }
+  };
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const targetEmail = email.trim() || "builder@hackforge.ai";
-    onLogin?.(targetEmail, password || "••••••••", remember);
+    setStatusMsg(null);
+
+    if (!isValidEmail(email)) {
+      setEmailError("enter valid mail id");
+      return;
+    }
+
+    setEmailError(null);
+    onLogin?.(email.trim(), password || "••••••••", remember);
   };
 
   const handleGoogle = () => {
+    setEmailError(null);
+    setStatusMsg(null);
     if (onGoogleLogin) {
       onGoogleLogin();
     } else {
@@ -57,12 +95,16 @@ export default function LoginPage({
   };
 
   const handleForgot = () => {
+    setStatusMsg(null);
+    if (!isValidEmail(email)) {
+      setEmailError("enter valid mail id");
+      return;
+    }
+    setEmailError(null);
     if (onForgotPassword) {
       onForgotPassword();
     } else {
-      setStatusMsg(
-        `Password reset instructions sent to ${email.trim() || "your work email"}.`
-      );
+      setStatusMsg(`Password reset instructions sent to ${email.trim()}.`);
     }
   };
 
@@ -71,6 +113,7 @@ export default function LoginPage({
       onCreateAccount();
     } else {
       setIsSignUp((prev) => !prev);
+      setEmailError(null);
       setStatusMsg(null);
     }
   };
@@ -119,7 +162,11 @@ export default function LoginPage({
 
         {/* Right Form Panel */}
         <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-12">
-          <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="w-full max-w-md space-y-6"
+          >
             <div className="space-y-1">
               <h2 className="text-slate-950 text-3xl font-bold tracking-tight dark:text-slate-50">
                 {isSignUp ? "Create your account" : "Welcome back"}
@@ -130,6 +177,16 @@ export default function LoginPage({
                   : "Sign in to pick up right where you left off."}
               </p>
             </div>
+
+            {emailError && (
+              <div
+                role="alert"
+                className="flex items-center gap-2.5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-400 text-sm font-medium"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{emailError}</span>
+              </div>
+            )}
 
             {statusMsg && (
               <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs">
@@ -164,9 +221,20 @@ export default function LoginPage({
                 type="email"
                 placeholder="you@company.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-slate-100 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500 h-10 border-slate-200 dark:border-slate-700/80 ring-0 dark:bg-slate-800/90"
+                onChange={handleEmailChange}
+                aria-invalid={!!emailError}
+                className={`bg-slate-100 h-10 ring-0 dark:bg-slate-800/90 transition-colors ${
+                  emailError
+                    ? "border-rose-500 focus-visible:ring-rose-500/40 focus-visible:border-rose-500 dark:border-rose-500"
+                    : "border-slate-200 dark:border-slate-700/80 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500"
+                }`}
               />
+              {emailError && (
+                <p className="text-xs font-semibold text-rose-400 flex items-center gap-1.5 pt-0.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {emailError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
