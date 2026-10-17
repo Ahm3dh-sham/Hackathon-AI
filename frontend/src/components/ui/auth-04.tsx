@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { FcGoogle } from "react-icons/fc";
-import { Cpu, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import { Cpu, Sparkles, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 interface LoginFormProps {
   brandName?: string;
@@ -21,22 +21,101 @@ interface LoginFormProps {
   footerLinks?: { label: string; href: string }[];
 }
 
-/**
- * Validates that an email address is properly formatted with a valid local part,
- * domain name, and top-level domain (e.g. user@example.com).
- */
-function isValidEmail(raw: string): boolean {
-  const value = raw.trim();
-  if (!value) return false;
-  if (value.includes("..")) return false;
+const BLOCKED_DOMAINS = new Set([
+  "example.com",
+  "example.org",
+  "example.net",
+  "test.com",
+  "testing.com",
+  "abc.com",
+  "xyz.com",
+  "asdf.com",
+  "qwerty.com",
+  "qwer.com",
+  "fake.com",
+  "fakemail.com",
+  "invalid.com",
+  "mailinator.com",
+  "tempmail.com",
+  "10minutemail.com",
+  "guerrillamail.com",
+  "yopmail.com",
+  "trashmail.com",
+  "gmil.com",
+  "gmal.com",
+  "gmial.com",
+  "gamil.com",
+  "gmail.co",
+  "gmail.con",
+  "gmail.org",
+  "gmail.net",
+  "yaho.com",
+  "yahooo.com",
+  "yahoo.co",
+  "outlok.com",
+  "hotmal.com",
+  "iclod.com",
+]);
 
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/;
-  if (!emailRegex.test(value)) return false;
+const BLOCKED_LOCAL_PARTS = new Set([
+  "test",
+  "testing",
+  "abc",
+  "abcd",
+  "asdf",
+  "qwerty",
+  "qwer",
+  "user",
+  "admin",
+  "fake",
+  "demo",
+  "example",
+  "sample",
+  "none",
+  "null",
+  "undefined",
+  "xyz",
+  "aaa",
+  "bbb",
+  "ccc",
+  "123",
+  "1234",
+  "12345",
+  "123456",
+]);
+
+const StrictEmailRegex =
+  /^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*(\.[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*)*\.[a-zA-Z]{2,10}$/;
+
+export function isValidEmailClient(raw: string): boolean {
+  const value = raw.trim().toLowerCase();
+  if (!value || !StrictEmailRegex.test(value)) return false;
 
   const [localPart, domainPart] = value.split("@");
   if (!localPart || !domainPart) return false;
-  if (localPart.startsWith(".") || localPart.endsWith(".")) return false;
-  if (domainPart.startsWith("-") || domainPart.endsWith("-")) return false;
+
+  if (
+    localPart.length < 3 ||
+    !/[a-zA-Z]/.test(localPart) ||
+    BLOCKED_LOCAL_PARTS.has(localPart)
+  ) {
+    return false;
+  }
+
+  if (BLOCKED_DOMAINS.has(domainPart)) return false;
+
+  const domainLabels = domainPart.split(".");
+  const domainName = domainLabels[0];
+  const tld = domainLabels[domainLabels.length - 1];
+
+  if (
+    domainName.length < 2 ||
+    /^\d+$/.test(domainName) ||
+    tld.length < 2 ||
+    ["con", "cmo", "comm", "orr", "nett"].includes(tld)
+  ) {
+    return false;
+  }
 
   return true;
 }
@@ -60,51 +139,83 @@ export default function LoginPage({
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setEmail(val);
-    if (emailError && isValidEmail(val)) {
+    if (emailError && isValidEmailClient(val)) {
       setEmailError(null);
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const verifyEmailFull = async (candidateEmail: string): Promise<boolean> => {
+    if (!isValidEmailClient(candidateEmail)) {
+      setEmailError("enter valid mail id");
+      return false;
+    }
+
+    setIsVerifying(true);
+    try {
+      const res = await fetch("/api/validate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: candidateEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!data.valid) {
+        setEmailError(data.message || "enter valid mail id");
+        return false;
+      }
+      setEmailError(null);
+      return true;
+    } catch {
+      // Fallback to strict client check if network call fails
+      const ok = isValidEmailClient(candidateEmail);
+      if (!ok) setEmailError("enter valid mail id");
+      return ok;
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setStatusMsg(null);
 
-    if (!isValidEmail(email)) {
-      setEmailError("enter valid mail id");
+    const isValid = await verifyEmailFull(email);
+    if (!isValid) {
       return;
     }
 
-    setEmailError(null);
-    onLogin?.(email.trim(), password || "••••••••", remember);
+    onLogin?.(email.trim().toLowerCase(), password || "••••••••", remember);
   };
 
-  const handleGoogle = () => {
-    setEmailError(null);
+  const handleGoogle = async () => {
     setStatusMsg(null);
+    const isValid = await verifyEmailFull(email);
+    if (!isValid) {
+      return;
+    }
     if (onGoogleLogin) {
       onGoogleLogin();
     } else {
-      onLogin?.("google-user@hackforge.ai", "google-oauth", true);
+      onLogin?.(email.trim().toLowerCase(), "google-oauth", true);
     }
   };
 
-  const handleForgot = () => {
+  const handleForgot = async () => {
     setStatusMsg(null);
-    if (!isValidEmail(email)) {
-      setEmailError("enter valid mail id");
+    const isValid = await verifyEmailFull(email);
+    if (!isValid) {
       return;
     }
-    setEmailError(null);
     if (onForgotPassword) {
       onForgotPassword();
     } else {
-      setStatusMsg(`Password reset instructions sent to ${email.trim()}.`);
+      setStatusMsg(`Password reset instructions sent to ${email.trim().toLowerCase()}.`);
     }
   };
 
@@ -174,14 +285,14 @@ export default function LoginPage({
               <p className="text-slate-500 text-sm dark:text-slate-400">
                 {isSignUp
                   ? "Start forging autonomous hackathon blueprints in seconds."
-                  : "Sign in to pick up right where you left off."}
+                  : "Sign in with a valid email address to continue."}
               </p>
             </div>
 
             {emailError && (
               <div
                 role="alert"
-                className="flex items-center gap-2.5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-400 text-sm font-medium"
+                className="flex items-center gap-2.5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-400 text-sm font-semibold animate-pulse"
               >
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{emailError}</span>
@@ -197,6 +308,7 @@ export default function LoginPage({
             <Button
               type="button"
               variant="outline"
+              disabled={isVerifying}
               className="bg-slate-100 hover:bg-slate-200 w-full gap-2 border border-slate-200 dark:border-slate-700 font-medium dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 h-11"
               onClick={handleGoogle}
             >
@@ -214,14 +326,19 @@ export default function LoginPage({
 
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium">
-                Work Email
+                Work Email <span className="text-rose-400">*</span>
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@company.com"
+                placeholder="name@gmail.com"
                 value={email}
                 onChange={handleEmailChange}
+                onBlur={() => {
+                  if (email.trim() && !isValidEmailClient(email)) {
+                    setEmailError("enter valid mail id");
+                  }
+                }}
                 aria-invalid={!!emailError}
                 className={`bg-slate-100 h-10 ring-0 dark:bg-slate-800/90 transition-colors ${
                   emailError
@@ -286,9 +403,19 @@ export default function LoginPage({
 
             <Button
               type="submit"
+              disabled={isVerifying}
               className="h-11 w-full text-base font-semibold bg-indigo-600 hover:bg-indigo-500 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:text-white shadow-lg shadow-indigo-600/25"
             >
-              {isSignUp ? "Create Account & Continue" : "Sign In"}
+              {isVerifying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Verifying Email Domain...
+                </>
+              ) : isSignUp ? (
+                "Create Account & Continue"
+              ) : (
+                "Sign In"
+              )}
             </Button>
 
             <p className="text-slate-500 text-center text-sm dark:text-slate-400">

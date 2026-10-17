@@ -7,7 +7,7 @@ import { BlueprintDisplay, ProjectStateBlueprint } from "@/components/BlueprintD
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 import { DecryptedText } from "@/components/react-bits/DecryptedText";
 import { CountUp } from "@/components/react-bits/CountUp";
-import LoginPage from "@/components/ui/auth-04";
+import LoginPage, { isValidEmailClient } from "@/components/ui/auth-04";
 import {
   ArrowLeft,
   Zap,
@@ -74,9 +74,16 @@ export default function Home() {
   const bentoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Clear legacy unverified key
+    localStorage.removeItem("hackforge_user");
     const syncAuth = () => {
-      const saved = localStorage.getItem("hackforge_user");
-      setUserEmail(saved);
+      const saved = sessionStorage.getItem("hackforge_verified_email");
+      if (saved && isValidEmailClient(saved)) {
+        setUserEmail(saved);
+      } else {
+        sessionStorage.removeItem("hackforge_verified_email");
+        setUserEmail(null);
+      }
       setAuthChecked(true);
     };
     syncAuth();
@@ -127,13 +134,15 @@ export default function Home() {
   }, [userEmail]);
 
   const handleLogin = (email: string) => {
-    const finalEmail = email.trim() || "builder@hackforge.ai";
-    localStorage.setItem("hackforge_user", finalEmail);
+    const finalEmail = email.trim().toLowerCase();
+    if (!isValidEmailClient(finalEmail)) return;
+    sessionStorage.setItem("hackforge_verified_email", finalEmail);
     setUserEmail(finalEmail);
     window.dispatchEvent(new Event("hackforge-auth-change"));
   };
 
   const handleSignOut = () => {
+    sessionStorage.removeItem("hackforge_verified_email");
     localStorage.removeItem("hackforge_user");
     setUserEmail(null);
     window.dispatchEvent(new Event("hackforge-auth-change"));
@@ -175,7 +184,6 @@ export default function Home() {
         <LoginPage
           brandName="HackForge AI"
           onLogin={(email) => handleLogin(email)}
-          onGoogleLogin={() => handleLogin("google-builder@hackforge.ai")}
         />
       </div>
     );
