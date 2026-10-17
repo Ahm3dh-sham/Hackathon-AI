@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Cpu, Zap, Github } from "lucide-react";
+import Announcement3 from "@/components/ui/announcement-3";
 
 export const metadata: Metadata = {
   title: "HackForge AI — Autonomous Multi-Agent Hackathon Blueprint Platform",
@@ -15,6 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-[#090d16] text-gray-100 antialiased flex flex-col min-h-screen">
+        {/* Top Announcement Banner */}
+        <Announcement3 />
+
         {/* Navigation Header */}
         <header className="sticky top-0 z-50 glass-panel border-b border-gray-800/80 px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
