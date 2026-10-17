@@ -19,7 +19,6 @@ export const VantaBackground: React.FC = () => {
     const height = window.innerHeight;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x090d16, 0.0018);
 
     const camera = new THREE.PerspectiveCamera(60, width / height, 1, 1000);
     camera.position.z = 260;
@@ -33,7 +32,6 @@ export const VantaBackground: React.FC = () => {
     const group = new THREE.Group();
     scene.add(group);
 
-    // Mouse interaction state
     const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
     const handleMouseMove = (e: MouseEvent) => {
       mouse.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -41,8 +39,7 @@ export const VantaBackground: React.FC = () => {
     };
     window.addEventListener("mousemove", handleMouseMove);
 
-    // Build Vanta NET or Vanta WAVES 3D geometry
-    const particleCount = mode === "net" ? 85 : 140;
+    const particleCount = mode === "net" ? 65 : 100;
     const positions = new Float32Array(particleCount * 3);
     const velocities: { vx: number; vy: number; vz: number; baseY: number }[] = [];
 
@@ -54,9 +51,9 @@ export const VantaBackground: React.FC = () => {
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
       velocities.push({
-        vx: (Math.random() - 0.5) * 0.28,
-        vy: (Math.random() - 0.5) * 0.28,
-        vz: (Math.random() - 0.5) * 0.2,
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: (Math.random() - 0.5) * 0.22,
+        vz: (Math.random() - 0.5) * 0.16,
         baseY: y,
       });
     }
@@ -64,41 +61,41 @@ export const VantaBackground: React.FC = () => {
     const pointsGeometry = new THREE.BufferGeometry();
     pointsGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 
+    // Aged Brass (#80643d) & Heritage Green (#526a56) from hackforge-vetymgot.manus.space
     const pointsMaterial = new THREE.PointsMaterial({
-      color: mode === "net" ? 0x818cf8 : 0x38bdf8,
-      size: mode === "net" ? 3.5 : 4.2,
+      color: mode === "net" ? 0x80643d : 0x526a56,
+      size: 3.2,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.35,
     });
 
     const pointsMesh = new THREE.Points(pointsGeometry, pointsMaterial);
     group.add(pointsMesh);
 
-    // Connecting lines for Vanta NET effect
     const maxLineSegments = particleCount * particleCount;
     const linePositions = new Float32Array(maxLineSegments * 3);
     const lineGeometry = new THREE.BufferGeometry();
     lineGeometry.setAttribute("position", new THREE.BufferAttribute(linePositions, 3));
 
     const lineMaterial = new THREE.LineBasicMaterial({
-      color: mode === "net" ? 0x6366f1 : 0xa855f7,
+      color: mode === "net" ? 0x987d50 : 0x617562,
       transparent: true,
-      opacity: 0.16,
+      opacity: 0.11,
     });
 
     const lineSegments = new THREE.LineSegments(lineGeometry, lineMaterial);
     group.add(lineSegments);
 
     let clock = 0;
-    const maxConnectDistance = mode === "net" ? 95 : 70;
+    const maxConnectDistance = mode === "net" ? 90 : 68;
 
     const animate = () => {
-      clock += 0.012;
+      clock += 0.01;
       mouse.x += (mouse.targetX - mouse.x) * 0.05;
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-      group.rotation.y = mouse.x * 0.32 + Math.sin(clock * 0.3) * 0.08;
-      group.rotation.x = mouse.y * 0.22 + Math.cos(clock * 0.25) * 0.05;
+      group.rotation.y = mouse.x * 0.25 + Math.sin(clock * 0.3) * 0.06;
+      group.rotation.x = mouse.y * 0.18 + Math.cos(clock * 0.25) * 0.04;
 
       const posAttr = pointsGeometry.getAttribute("position") as THREE.BufferAttribute;
       const posArray = posAttr.array as Float32Array;
@@ -108,7 +105,9 @@ export const VantaBackground: React.FC = () => {
           const x = posArray[i * 3];
           const z = posArray[i * 3 + 2];
           posArray[i * 3 + 1] =
-            velocities[i].baseY + Math.sin(x * 0.02 + clock * 2) * 18 + Math.cos(z * 0.02 + clock * 1.5) * 14;
+            velocities[i].baseY +
+            Math.sin(x * 0.02 + clock * 2) * 16 +
+            Math.cos(z * 0.02 + clock * 1.5) * 12;
         } else {
           posArray[i * 3] += velocities[i].vx;
           posArray[i * 3 + 1] += velocities[i].vy;
@@ -121,7 +120,6 @@ export const VantaBackground: React.FC = () => {
       }
       posAttr.needsUpdate = true;
 
-      // Update connecting neural lines
       let vertexIndex = 0;
       for (let i = 0; i < particleCount; i++) {
         for (let j = i + 1; j < particleCount; j++) {
@@ -175,27 +173,22 @@ export const VantaBackground: React.FC = () => {
     <>
       <div
         ref={containerRef}
-        className="fixed inset-0 pointer-events-none z-0 opacity-65 transition-opacity duration-700"
-        aria-hidden="true"
-      />
-      {/* Subtle radial gradient overlay so foreground remains crisp */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.12)_0%,_rgba(9,13,22,0.85)_70%)]"
+        className="fixed inset-0 pointer-events-none z-0 opacity-60 transition-opacity duration-700"
         aria-hidden="true"
       />
 
-      {/* Floating Vanta 3D Scene Switcher */}
-      <div className="fixed bottom-4 right-4 z-40 hidden sm:flex items-center gap-1 p-1 rounded-full bg-gray-900/80 backdrop-blur-md border border-gray-800/80 shadow-xl text-[11px]">
-        <span className="px-2.5 py-1 text-gray-400 font-mono flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-indigo-400" />
+      {/* Floating Vanta 3D Scene Switcher styled in Editorial Linen & Heritage Green */}
+      <div className="fixed bottom-4 right-4 z-40 hidden sm:flex items-center gap-1 p-1 rounded-full bg-[#fffdf8]/95 backdrop-blur-md border border-[#d9d0c2] shadow-lg text-[10px]">
+        <span className="px-2.5 py-1 text-[#726d62] font-mono flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-[#80643d]" />
           Vanta 3D
         </span>
         <button
           onClick={() => setMode("net")}
           className={`px-2.5 py-1 rounded-full font-medium flex items-center gap-1 transition-all ${
             mode === "net"
-              ? "bg-indigo-600 text-white shadow"
-              : "text-gray-400 hover:text-gray-200"
+              ? "bg-[#394b3f] text-[#fffdf8] shadow"
+              : "text-[#625d52] hover:text-[#292720]"
           }`}
           title="Vanta 3D Neural Net"
         >
@@ -205,10 +198,10 @@ export const VantaBackground: React.FC = () => {
           onClick={() => setMode("waves")}
           className={`px-2.5 py-1 rounded-full font-medium flex items-center gap-1 transition-all ${
             mode === "waves"
-              ? "bg-indigo-600 text-white shadow"
-              : "text-gray-400 hover:text-gray-200"
+              ? "bg-[#394b3f] text-[#fffdf8] shadow"
+              : "text-[#625d52] hover:text-[#292720]"
           }`}
-          title="Vanta 3D Cyber Waves"
+          title="Vanta 3D Waves"
         >
           <Waves className="w-3 h-3" /> Waves
         </button>
@@ -216,8 +209,8 @@ export const VantaBackground: React.FC = () => {
           onClick={() => setMode("off")}
           className={`px-2 py-1 rounded-full font-medium flex items-center gap-1 transition-all ${
             mode === "off"
-              ? "bg-gray-700 text-white"
-              : "text-gray-500 hover:text-gray-300"
+              ? "bg-[#80643d] text-[#fffdf8]"
+              : "text-[#726d62] hover:text-[#292720]"
           }`}
           title="Disable 3D Background"
         >
