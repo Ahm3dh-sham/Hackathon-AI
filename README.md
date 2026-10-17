@@ -17,6 +17,17 @@
 1. **Problem Analysis & Market Feasibility**
 2. **Product Specification & Feature Roadmap (MVP vs Phase 2)**
 3. **Technical Architecture (Microservices, Database Schemas & REST APIs)**
+4. **Master Builder Prompt (Ready-to-Paste Prompt for Cursor, Bolt.new, Lovable & v0)**
+
+---
+
+## 🎨 Editorial Blueprint Studio & Interactive Stack
+
+The frontend features an **Old-Money Editorial Blueprint Studio** design system (**Warm Linen `#f7f4ed`**, **Ivory Paper `#fffdf8`**, **Espresso Ink `#292720`**, **Aged Brass `#80643d`**, and **Heritage Forest Green `#394b3f`**) paired with `Cormorant Garamond`, `Manrope`, and `DM Mono` typography, powered by:
+* **[GSAP (`greensock/GSAP`)](https://github.com/greensock/GSAP):** Choreographed timeline animations, magnetic hover cards, and SVG flow path transitions.
+* **[React Bits (`DavidHDev/react-bits`)](https://github.com/DavidHDev/react-bits):** Interactive Spotlight Cards and animated Spring Number Counters.
+* **[Vanta.js (`tengbao/vanta`)](https://github.com/tengbao/vanta):** Three.js 3D interactive topological mesh background (`VantaBackground.tsx`).
+* **[Watermelon UI (`WatermelonCorp/watermelon-platform`)](https://github.com/WatermelonCorp/watermelon-platform):** Interactive `Announcement3` top banner and `CarouselNavigator` auto-advancing tab controller with keyboard navigation (`←` / `→`).
 
 ---
 
@@ -28,14 +39,14 @@ flowchart LR
     B --> C["Research Agent"]
     C --> D["Product Specifier Agent"]
     D --> E["Technical Architect Agent"]
-    E --> F["Complete Project Blueprint & DB Storage"]
+    E --> F["Master Builder Prompt & Editorial Dossier"]
 ```
 
 ### Agent Responsibilities
 * **Orchestrator Agent:** Validates input parameters, initializes graph execution state, and coordinates agent transitions.
 * **Research Agent:** Performs domain classification, analyzes root causes, identifies target user personas, and evaluates hackathon feasibility scores.
 * **Product Specifier Agent:** Generates 24-48h MVP core features, post-hackathon roadmap, key user stories, and UX workflows.
-* **Technical Architect Agent:** Formulates recommended technology stacks, designs relational entity database schemas, and drafts REST API endpoint contracts.
+* **Technical Architect Agent:** Formulates recommended technology stacks, designs relational entity database schemas, drafts REST API endpoint contracts, and synthesizes a comprehensive **Master Builder Prompt**.
 
 ---
 
@@ -51,10 +62,10 @@ flowchart LR
 ### 2. Product Specification
 
 #### MVP Features (24-48h Scope)
-* **Problem Statement Parser:** Interactive input portal with real-time intent extraction and customizable preset ideas.
+* **Interactive Blueprint Studio:** Real-time problem statement synthesis with 4 curated presets (`Medical Triage`, `Carbon Supply Chain`, `Decentralized Grid`, `Legal Contract Auditor`) and custom prompt support.
 * **Stateful LangGraph Engine:** 4-node execution graph supporting sequential and parallel multi-agent synthesis.
-* **Interactive Blueprint Visualizer:** Rich tabbed dashboard displaying research cards, database schemas, and REST API definitions.
-* **Markdown Exporter:** One-click generation and download of complete `BLUEPRINT.md` files.
+* **Editorial Architectural Dossier:** Rich 4-tab visualizer (`Research Analysis`, `Product Specification`, `Technical Architecture`, `Builder Prompt`) with `CarouselNavigator`.
+* **One-Click Export (`PDF` & `BLUEPRINT.md`):** Instant high-contrast PDF dossier export (`html2pdf.js`) and Markdown download.
 
 #### Phase 2 Features
 * **Automated GitHub Scaffolder:** One-click creation of pre-configured GitHub repositories with Docker & CI/CD workflows.
@@ -71,9 +82,9 @@ flowchart LR
 ### Recommended Tech Stack
 | Tier | Technology | Description |
 |---|---|---|
-| **Frontend** | **Next.js 14 (App Router)** | TypeScript, Tailwind CSS, Lucide Icons |
+| **Frontend** | **Next.js 14 (App Router)** | TypeScript, Tailwind CSS, GSAP, Vanta.js, React Bits, Watermelon UI |
 | **Backend** | **Python & FastAPI** | Uvicorn, Pydantic v2, Async HTTP |
-| **AI Orchestration** | **LangGraph & LangChain** | Stateful Directed Agent Graph |
+| **AI Orchestration** | **LangGraph & Google Gemini** | Stateful Directed Agent Graph (`gemini-2.5-flash` + intelligent fallback) |
 | **Database** | **PostgreSQL / SQLite** | SQLAlchemy ORM with `pgvector` extension |
 | **Deployment** | **Vercel & Render** | Global CDN Frontend + Async Microservices |
 
