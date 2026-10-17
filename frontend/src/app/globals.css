@@ -1,17 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #090d16;
-  --foreground: #f3f4f6;
+  --ink: #0a0d13;
+  --ink-soft: #10151e;
+  --ink-raised: #151c26;
+  --ink-line: rgba(222, 233, 225, 0.12);
+  --paper: #f0f2e9;
+  --paper-muted: #a8afa8;
+  --muted: #909b9d;
+  --acid: #d5fa70;
+  --acid-deep: #b8e64c;
+  --violet: #aaa0ff;
+  --cyan: #8ce9d4;
+  --display: 'Cormorant Garamond', 'Space Grotesk', Georgia, serif;
+  --body: 'Manrope', system-ui, -apple-system, sans-serif;
+  --mono: 'DM Mono', ui-monospace, monospace;
+  --page: min(1240px, calc(100% - 64px));
+  --background: #0a0d13;
+  --foreground: #f0f2e9;
+}
+
+.theme-editorial {
+  --ink: #f7f4ed;
+  --ink-soft: #eee9df;
+  --ink-raised: #fffdf8;
+  --ink-line: rgba(70, 60, 43, 0.15);
+  --paper: #292720;
+  --paper-muted: #5e5a50;
+  --muted: #726d62;
+  --acid: #80643d;
+  --acid-deep: #68512f;
+  --violet: #7c7864;
+  --cyan: #617562;
+  --display: 'Cormorant Garamond', 'Times New Roman', serif;
+  --body: 'Manrope', 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--body);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Custom scrollbar */
@@ -32,7 +72,48 @@ body {
 
 /* Glassmorphism helpers */
 .glass-panel {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 24, 39, 0.78);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+/* Reference Landing Page Keyframes & Utilities */
+@keyframes hf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hf-ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.hf-spin-slow {
+  animation: hf-spin 22s linear infinite;
+}
+
+.hf-ticker-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 32px;
+  padding-block: 14px;
+  animation: hf-ticker 36s linear infinite;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-display-grotesk {
+  font-family: 'Space Grotesk', 'Manrope', sans-serif;
+}
+
+.font-dm-mono {
+  font-family: 'DM Mono', ui-monospace, monospace;
 }
