@@ -2,12 +2,25 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
-import { BlueprintDisplay, ProjectStateBlueprint } from "@/components/BlueprintDisplay";
+import {
+  BlueprintDisplay,
+  BlueprintTab,
+  ProjectStateBlueprint,
+} from "@/components/BlueprintDisplay";
 import { DecryptedText } from "@/components/react-bits/DecryptedText";
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 import { CountUp } from "@/components/react-bits/CountUp";
 import { FlyoverIntroOverlay } from "@/components/FlyoverShowcase";
-import { ArrowLeft, Loader2, Quote, CheckCircle2, Layers, Cpu } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Quote,
+  CheckCircle2,
+  Layers,
+  Cpu,
+  Users,
+  Presentation,
+} from "lucide-react";
 
 const PRESET_BRIEFS = [
   {
@@ -37,6 +50,8 @@ export default function Home() {
   const [brief, setBrief] = useState(
     "Students want to rescue surplus campus meals before they go to waste."
   );
+  const [teamSize, setTeamSize] = useState<number>(4);
+  const [dossierTab, setDossierTab] = useState<BlueprintTab>("research");
   const [activeAgentIdx, setActiveAgentIdx] = useState<number>(-1);
   const [completedUpTo, setCompletedUpTo] = useState<number>(-1);
   const [statusState, setStatusState] = useState<"idle" | "running" | "done">("idle");
@@ -59,6 +74,19 @@ export default function Home() {
       setShowFlyoverIntro(false);
     }
   }, []);
+
+  // Listen for top navbar "#talkscript" clicks to open the TalkScript & PPT studio immediately
+  useEffect(() => {
+    const handleHashOrClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement)?.closest('a[href="#talkscript"]');
+      if (target) {
+        e.preventDefault();
+        handlePlayAndGenerate("talkscript");
+      }
+    };
+    document.addEventListener("click", handleHashOrClick);
+    return () => document.removeEventListener("click", handleHashOrClick);
+  });
 
   // GSAP Entrance Animation when the actual landing page opens after the 3D Fly-Over Intro
   useEffect(() => {
@@ -93,10 +121,17 @@ export default function Home() {
     return words.length < normalized.length ? `${words}…` : words;
   };
 
-  // Interactive "Play the flow" + Real AI Blueprint Generation
-  const handlePlayAndGenerate = async () => {
-    if (statusState === "running" || isGeneratingAI || !brief.trim()) return;
+  // Interactive "Play the flow" + Real AI Blueprint & TalkScript Generation
+  const handlePlayAndGenerate = async (targetTab: BlueprintTab = "research") => {
+    if (statusState === "running" || isGeneratingAI || !brief.trim()) {
+      if (blueprintData) {
+        setDossierTab(targetTab);
+        liveBlueprintRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return;
+    }
 
+    setDossierTab(targetTab);
     setError(null);
     setStatusState("running");
     setIsReady(false);
@@ -109,12 +144,15 @@ export default function Home() {
     const fetchPromise = fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problem_statement: brief.trim() }),
+      body: JSON.stringify({
+        problem_statement: brief.trim(),
+        team_size: teamSize,
+      }),
     });
 
     for (let i = 0; i < 4; i++) {
       setActiveAgentIdx(i);
-      await new Promise((r) => setTimeout(r, 420));
+      await new Promise((r) => setTimeout(r, 380));
       setCompletedUpTo(i);
     }
     setActiveAgentIdx(-1);
@@ -309,6 +347,44 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* NEW INPUT: NO. OF TEAMMATES FOR TALKSCRIPT & PPT */}
+              <div className="mt-3 p-3 bg-[#f7f4ed] border border-[#d8cfc0] flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor="team-size-input"
+                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#292720] font-bold flex items-center gap-1.5"
+                >
+                  <Users className="w-3.5 h-3.5 text-[#80643d]" /> NO. OF TEAMMATES (TALKSCRIPT &amp; PPT)
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setTeamSize(num)}
+                      className={`w-6 h-6 text-[11px] font-mono font-bold border transition-colors ${
+                        teamSize === num
+                          ? "bg-[#394b3f] text-[#fffdf8] border-[#394b3f]"
+                          : "bg-[#fffdf8] text-[#5e5a50] border-[#d8cfc0] hover:border-[#80643d]"
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <input
+                    id="team-size-input"
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={teamSize}
+                    onChange={(e) =>
+                      setTeamSize(Math.max(1, Math.min(10, Number(e.target.value) || 1)))
+                    }
+                    className="w-12 h-6 px-1.5 text-xs font-mono font-bold bg-[#fffdf8] border border-[#c9b99d] text-[#292720] text-center"
+                    aria-label="Number of teammates"
+                  />
+                </div>
+              </div>
+
               <div className="agents-bar">
                 <div className="agents-bar-heading">
                   <span className="micro-label">SPECIALIST AGENTS</span>
@@ -406,51 +482,60 @@ export default function Home() {
                     </strong>
                   </div>
                   <div className="snapshot-item">
-                    <span>03 / BUILD PATH</span>
+                    <span>03 / TALKSCRIPT &amp; PPT</span>
                     <strong>
-                      {isReady
-                        ? "Architecture + Master Prompt"
-                        : "Web app + live inventory"}
+                      {teamSize} Teammate{teamSize > 1 ? "s" : ""} · 8-Slide Deck
                     </strong>
                   </div>
                 </div>
-                <div className="preview-footer">
+                <div className="preview-footer flex-wrap gap-2">
                   <span className="illustrative-note">
                     <span>i</span>{" "}
                     {isGeneratingAI
                       ? "Running LangGraph Multi-Agent Pipeline..."
                       : "Powered by live LangGraph multi-agent engine"}
                   </span>
-                  <button
-                    className="run-demo"
-                    id="run-demo"
-                    type="button"
-                    onClick={handlePlayAndGenerate}
-                    disabled={isGeneratingAI}
-                  >
-                    {isGeneratingAI ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Forging Blueprint...
-                      </>
-                    ) : isReady ? (
-                      <>
-                        Generate again <span aria-hidden="true">↗</span>
-                      </>
-                    ) : (
-                      <>
-                        Play the flow <span aria-hidden="true">↗</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => handlePlayAndGenerate("talkscript")}
+                      disabled={isGeneratingAI}
+                      className="px-3 py-2 text-[11px] font-mono font-bold uppercase tracking-wider bg-[#80643d] hover:bg-[#68512f] text-[#fffdf8] transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <Presentation className="w-3.5 h-3.5" />
+                      TalkScript &amp; PPT
+                    </button>
+                    <button
+                      className="run-demo"
+                      id="run-demo"
+                      type="button"
+                      onClick={() => handlePlayAndGenerate("research")}
+                      disabled={isGeneratingAI}
+                    >
+                      {isGeneratingAI ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Forging Blueprint...
+                        </>
+                      ) : isReady ? (
+                        <>
+                          Generate again <span aria-hidden="true">↗</span>
+                        </>
+                      ) : (
+                        <>
+                          Play the flow <span aria-hidden="true">↗</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
               {error && (
                 <p className="text-xs text-rose-700 font-semibold mt-2 text-right">{error}</p>
               )}
               <p className="demo-disclaimer">
-                Type any hackathon problem statement above and click &ldquo;Play the flow&rdquo; to
-                generate a full blueprint.
+                Enter your problem statement &amp; number of teammates above, then click &ldquo;Play
+                the flow&rdquo; or &ldquo;TalkScript &amp; PPT&rdquo;.
               </p>
             </div>
           </div>
@@ -479,7 +564,7 @@ export default function Home() {
               <ArrowLeft className="w-4 h-4" /> Close Blueprint Dossier
             </button>
             <span className="font-mono text-[10px] tracking-[0.12em] text-[#725a36] uppercase">
-              HACKFORGE / GENERATED ARCHITECTURE DOSSIER
+              HACKFORGE / GENERATED ARCHITECTURE &amp; TALKSCRIPT DOSSIER
             </span>
           </div>
 
@@ -492,14 +577,20 @@ export default function Home() {
               </div>
               <span className="preview-app-title">
                 <span className="mini-mark">H</span> HACKFORGE{" "}
-                <span className="muted-slash">/</span> PROJECT BLUEPRINT DOSSIER
+                <span className="muted-slash">/</span> PROJECT BLUEPRINT &amp; TALKSCRIPT DOSSIER
               </span>
               <span className="demo-badge">
                 <span></span> VERIFIED OUTPUT
               </span>
             </div>
             <div className="p-6 sm:p-8 bg-[#f7f4ed]/60">
-              <BlueprintDisplay data={blueprintData} onReset={() => setBlueprintData(null)} />
+              <BlueprintDisplay
+                data={blueprintData}
+                teamSize={teamSize}
+                onTeamSizeChange={setTeamSize}
+                initialTab={dossierTab}
+                onReset={() => setBlueprintData(null)}
+              />
             </div>
           </div>
         </section>

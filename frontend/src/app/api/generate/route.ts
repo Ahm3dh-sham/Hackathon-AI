@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-function synthesizeServerlessBlueprint(problemStatement: string) {
+function synthesizeServerlessBlueprint(problemStatement: string, teamSize: number = 4) {
   const clean = problemStatement.trim();
   const lower = clean.toLowerCase();
+  const safeTeamSize = Math.max(1, Math.min(10, Number(teamSize) || 4));
 
   let domainCategory = "AI-Native SaaS & Autonomous Workflow Systems";
   let projectName = "ForgeFlow AI";
@@ -35,6 +36,13 @@ function synthesizeServerlessBlueprint(problemStatement: string) {
     }
   }
 
+  const keyPainPoints = [
+    "Sub-second ingestion and normalization of heterogeneous user inputs across fragmented channels",
+    "High manual coordination latency and lack of real-time visibility during critical operational windows",
+    "Deterministic state transitions with human-in-the-loop override auditability",
+    "Mobile-first responsive clarity under high-concurrency hackathon demo loads",
+  ];
+
   const research_data = {
     domain_category: domainCategory,
     feasibility_score: 94,
@@ -45,11 +53,9 @@ function synthesizeServerlessBlueprint(problemStatement: string) {
       "System Administrators & Compliance Reviewers",
     ],
     unique_value_proposition: `${projectName} replaces manual coordination with a 4-stage autonomous pipeline that ingests live signals, scores priority in real time, and triggers verified actions in under 15 seconds.`,
-    key_challenges: [
-      "Sub-second ingestion and normalization of heterogeneous user inputs",
-      "Deterministic state transitions with human-in-the-loop override auditability",
-      "Mobile-first responsive clarity under high-concurrency hackathon demo loads",
-    ],
+    competitive_landscape: `Existing legacy tools rely on static forms and delayed batch workflows. ${projectName} differentiates by combining stateful multi-agent orchestration (LangGraph), instant schema-validated triage, and zero-friction team handoffs.`,
+    key_pain_points: keyPainPoints,
+    key_challenges: keyPainPoints,
   };
 
   const product_spec = {
@@ -57,60 +63,131 @@ function synthesizeServerlessBlueprint(problemStatement: string) {
     tagline,
     mvp_features: [
       {
+        name: "Real-Time Intake & Signal Triage Engine",
         title: "Real-Time Intake & Signal Triage Engine",
         description: `Captures incoming requests for "${clean}" and automatically extracts structured priority, constraints, and SLA tags.`,
-        priority: "P0 — Critical",
+        priority: "High",
       },
       {
+        name: "Multi-Agent Coordinator & State Machine",
         title: "Multi-Agent Coordinator & State Machine",
         description: "Orchestrates validation, matching, and automated routing across specialist agent nodes with live status telemetry.",
-        priority: "P0 — Critical",
+        priority: "High",
       },
       {
+        name: "Interactive Editorial Command Dossier",
         title: "Interactive Editorial Command Dossier",
         description: "Displays live KPI counters, priority queues, and one-click action approvals in a high-contrast editorial interface.",
-        priority: "P1 — High",
+        priority: "Medium",
       },
       {
-        title: "Instant Audit Export (PDF & Webhook Sync)",
-        description: "Generates verifiable execution receipts and syncs downstream notifications via REST webhooks.",
-        priority: "P1 — High",
+        name: "Instant Audit Export (PPT, TalkScript & PDF)",
+        title: "Instant Audit Export (PPT, TalkScript & PDF)",
+        description: `Generates verifiable execution receipts, a pitch presentation deck, and a synchronized ${safeTeamSize}-teammate talkscript.`,
+        priority: "High",
       },
     ],
     phase2_features: [
-      "Predictive demand forecasting using historical time-series embeddings",
-      "Role-based multi-tenant organization workspaces and SSO",
-      "Native iOS/Android push notification companion with offline queue sync",
+      {
+        name: "Predictive Demand & Anomaly Forecasting",
+        description: "Time-series embedding pipeline that anticipates bottlenecks before they impact operations.",
+        priority: "Medium",
+      },
+      {
+        name: "Multi-Tenant Enterprise RBAC & SSO",
+        description: "Role-based organization workspaces, audit logs, and SAML/OIDC authentication.",
+        priority: "Low",
+      },
     ],
     user_stories: [
       `As a primary user, I want to submit an urgent event related to "${clean}" and receive an actionable resolution plan in under 15 seconds.`,
       "As an operations lead, I want to inspect confidence scores and override automated routing rules when edge cases occur.",
-      "As a stakeholder, I want to export a clean PDF summary of all processed actions and impact metrics for our demo presentation.",
+      `As a ${safeTeamSize}-person hackathon team, we want an instant slide deck and speaker talkscript so every teammate knows their exact pitch role.`,
+    ],
+    ux_workflow: [
+      "User submits a raw problem signal or operational event in the Studio Intake Portal.",
+      "FastAPI & LangGraph Specialist Agents enrich, score, and route the payload in real time.",
+      "Operators review the structured recommendation, KPI telemetry, and approve one-click execution.",
+      "System logs immutable audit receipts and exports the presentation deck & team talkscript.",
     ],
   };
 
+  const recommendedTechStack = {
+    frontend: "Next.js 14 (App Router), TypeScript, Tailwind CSS, GSAP, Three.js / WebGL2",
+    backend: "Python FastAPI, Pydantic v2, AsyncIO, LangGraph Stateful Orchestrator",
+    database: "PostgreSQL 16 + pgvector (Relational + Semantic Embeddings), Redis Cache",
+    ai_models: "Google Gemini 2.5 Flash (Structured JSON Synthesis & Function Calling)",
+    deployment: "Vercel Global Edge Network (Frontend) + Render / Cloud Run (API)",
+  };
+
+  const masterBuilderPrompt = `# ROLE & OBJECTIVE
+You are a Principal Full-Stack Architect and Staff UI Engineer. Build the complete, production-ready MVP for **${projectName}** ("${tagline}").
+
+## 1. PROBLEM CONTEXT & VALUE PROPOSITION
+- **Problem Statement:** ${clean}
+- **Domain:** ${domainCategory}
+- **Team Size:** ${safeTeamSize} Teammate${safeTeamSize > 1 ? "s" : ""}
+- **Core Value Proposition:** ${research_data.unique_value_proposition}
+
+## 2. EDITORIAL DESIGN SYSTEM (MANDATORY PALETTE & TYPOGRAPHY)
+- **Background Surfaces:** Warm Linen (\`#f7f4ed\`), Soft Linen (\`#eee9df\`), Ivory Paper Cards (\`#fffdf8\`)
+- **Typography & Ink:** Deep Espresso Ink (\`#292720\`), Muted Slate (\`#5e5a50\`)
+- **Accents:** Aged Brass (\`#80643d\`) and Heritage Forest Green (\`#394b3f\`)
+- **Fonts:** \`Cormorant Garamond\` (serif display headings), \`Manrope\` (body UI), \`DM Mono\` (telemetry & badges)
+
+## 3. TECHNICAL STACK & ARCHITECTURE
+- **Frontend:** Next.js 14 (App Router), TypeScript, Tailwind CSS, GSAP, Lucide Icons
+- **Backend:** FastAPI / Next.js App Router Route Handlers with strict schema validation
+- **Database Tables:** \`workspaces\`, \`intake_records\`, \`agent_executions\`
+
+## 4. CORE MVP FEATURES TO IMPLEMENT
+1. **Real-Time Intake & Signal Triage Engine:** Interactive input studio with preset scenarios, live validation, and instant synthesis trigger.
+2. **4-Agent Execution Trace:** Visual pipeline showing Product, Architecture, Design, and Delivery specialist nodes completing in sequence.
+3. **Editorial Command Dossier:** Tabbed view for Research Analysis, Product Specification, Technical Architecture, Builder Prompt, and TalkScript & PPT.
+4. **One-Click Pitch & Export:** Downloadable PowerPoint (\`.pptx\`), synchronized ${safeTeamSize}-Teammate TalkScript (\`.pdf\`), and Blueprint Dossier.`;
+
   const architecture_spec = {
-    tech_stack: {
-      frontend: "Next.js 14 (App Router), TypeScript, Tailwind CSS, GSAP, Three.js / WebGL2",
-      backend: "Python FastAPI, Pydantic v2, AsyncIO, LangGraph Stateful Orchestrator",
-      database: "PostgreSQL 16 + pgvector (Relational + Semantic Embeddings), Redis Cache",
-      ai_models: "Google Gemini 2.5 Flash (Structured JSON Synthesis & Function Calling)",
-      deployment: "Vercel Global Edge Network (Frontend) + Render / Cloud Run (API)",
-    },
+    recommended_tech_stack: recommendedTechStack,
+    tech_stack: recommendedTechStack,
     system_Workflow_summary:
       "Client requests enter the Next.js Edge gateway -> FastAPI validates payload via Pydantic v2 -> LangGraph executes the 4-node specialist graph (Intake -> Enrich -> Match -> Verify) -> Persists structured state in PostgreSQL and streams real-time updates back to the studio UI.",
+    system_components: [
+      {
+        name: "Editorial Studio Web Client",
+        role: "Interactive Next.js 14 operator console, live telemetry counters, PPTX generator, and TalkScript studio.",
+        technologies: ["Next.js 14", "TypeScript", "Tailwind CSS", "GSAP", "PptxGenJS"],
+      },
+      {
+        name: "FastAPI API Gateway",
+        role: "High-concurrency async REST layer handling payload validation, rate limiting, and SSE status streaming.",
+        technologies: ["Python 3.11", "FastAPI", "Pydantic v2", "Uvicorn"],
+      },
+      {
+        name: "LangGraph Multi-Agent Engine",
+        role: "Stateful 4-agent DAG coordinating Research, Product Strategy, System Architecture, and Pitch Delivery.",
+        technologies: ["LangGraph", "Gemini 2.5 Flash", "Structured Outputs"],
+      },
+      {
+        name: "Relational & Vector Persistence",
+        role: "Stores workspace records, agent execution traces, and semantic embeddings for fast retrieval.",
+        technologies: ["PostgreSQL 16", "pgvector", "Redis"],
+      },
+    ],
     database_schema: [
       {
         table_name: "workspaces",
+        description: "Stores project workspaces, domain classification, and team metadata.",
         columns: [
           "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
           "name VARCHAR(160) NOT NULL",
           "domain_category VARCHAR(120) NOT NULL",
+          "team_size INTEGER DEFAULT 4",
           "created_at TIMESTAMPTZ DEFAULT NOW()",
         ],
       },
       {
         table_name: "intake_records",
+        description: "Captures raw problem statements, priority scores, and structured JSON outputs.",
         columns: [
           "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
           "workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE",
@@ -123,6 +200,7 @@ function synthesizeServerlessBlueprint(problemStatement: string) {
       },
       {
         table_name: "agent_executions",
+        description: "Immutable audit log of each specialist agent node's decision trace and latency.",
         columns: [
           "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
           "record_id UUID REFERENCES intake_records(id) ON DELETE CASCADE",
@@ -155,54 +233,30 @@ function synthesizeServerlessBlueprint(problemStatement: string) {
         description: "Returns real-time throughput, average synthesis latency, and feasibility telemetry.",
       },
     ],
-    master_builder_prompt: `# ROLE & OBJECTIVE
-You are a Principal Full-Stack Architect and Staff UI Engineer. Build the complete, production-ready MVP for **${projectName}** ("${tagline}").
-
-## 1. PROBLEM CONTEXT & VALUE PROPOSITION
-- **Problem Statement:** ${clean}
-- **Domain:** ${domainCategory}
-- **Core Value Proposition:** ${research_data.unique_value_proposition}
-
-## 2. EDITORIAL DESIGN SYSTEM (MANDATORY PALETTE & TYPOGRAPHY)
-- **Background Surfaces:** Warm Linen (\`#f7f4ed\`), Soft Linen (\`#eee9df\`), Ivory Paper Cards (\`#fffdf8\`)
-- **Typography & Ink:** Deep Espresso Ink (\`#292720\`), Muted Slate (\`#5e5a50\`)
-- **Accents:** Aged Brass (\`#80643d\`) and Heritage Forest Green (\`#394b3f\`)
-- **Fonts:** \`Cormorant Garamond\` (serif display headings), \`Manrope\` (body UI), \`DM Mono\` (telemetry & badges)
-
-## 3. TECHNICAL STACK & ARCHITECTURE
-- **Frontend:** ${architecture_spec_stack_line()}
-- **Backend:** FastAPI / Next.js App Router Route Handlers with strict schema validation
-- **Database Tables:** \`workspaces\`, \`intake_records\`, \`agent_executions\`
-
-## 4. CORE MVP FEATURES TO IMPLEMENT
-1. **Real-Time Intake & Signal Triage Engine:** Interactive input studio with preset scenarios, live validation, and instant synthesis trigger.
-2. **4-Agent Execution Trace:** Visual pipeline showing Product, Architecture, Design, and Delivery specialist nodes completing in sequence.
-3. **Editorial Command Dossier:** Tabbed view for Research Analysis, Product Specification, Technical Architecture, and Exportable Artifacts.
-4. **One-Click Export:** Downloadable Markdown (\`BLUEPRINT.md\`) and high-contrast PDF dossier.`,
+    master_builder_prompt: masterBuilderPrompt,
   };
 
   return {
     problem_statement: clean,
+    team_size: safeTeamSize,
     research_data,
     product_spec,
     architecture_spec,
+    builderPrompt: masterBuilderPrompt,
     status: "completed",
   };
-}
-
-function architecture_spec_stack_line() {
-  return "Next.js 14 (App Router), TypeScript, Tailwind CSS, GSAP, Lucide Icons";
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { problem_statement } = body;
+    const { problem_statement, team_size } = body;
 
     if (!problem_statement || !problem_statement.trim()) {
       return NextResponse.json({ error: "Problem statement is required." }, { status: 400 });
     }
 
+    const safeTeamSize = Math.max(1, Math.min(10, Number(team_size) || 4));
     const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
 
     try {
@@ -211,7 +265,7 @@ export async function POST(request: Request) {
       const backendRes = await fetch(`${backendUrl}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ problem_statement }),
+        body: JSON.stringify({ problem_statement, team_size: safeTeamSize }),
         cache: "no-store",
         signal: controller.signal,
       });
@@ -219,13 +273,16 @@ export async function POST(request: Request) {
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        return NextResponse.json(data);
+        return NextResponse.json({
+          ...data,
+          team_size: safeTeamSize,
+        });
       }
     } catch {
       // Fallback to built-in Serverless Multi-Agent Synthesizer (e.g., on Vercel Edge/Serverless)
     }
 
-    const fallbackData = synthesizeServerlessBlueprint(problem_statement);
+    const fallbackData = synthesizeServerlessBlueprint(problem_statement, safeTeamSize);
     return NextResponse.json(fallbackData);
   } catch (err: any) {
     return NextResponse.json(
