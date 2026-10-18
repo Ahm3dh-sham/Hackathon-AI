@@ -776,6 +776,11 @@
       sceneReady = true;
       window.__FLYOVER_READY__ = true;
       seek(currentTime);
+      if (params.get("autoplay") === "1") {
+        setTimeout(() => {
+          play();
+        }, 120);
+      }
     }
 
     // Compute camera & page mask parameters at time t (0 <= t <= 14.5)
@@ -1504,6 +1509,9 @@
         nextT = DURATION;
         seek(nextT);
         pause();
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "flyover-ended" }, "*");
+        }
         return;
       }
       seek(nextT);

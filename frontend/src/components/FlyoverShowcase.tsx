@@ -1,10 +1,21 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Film, Sparkles } from "lucide-react";
+import gsap from "gsap";
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Film,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import { CarouselNavigator } from "@/components/carousel-navigator";
 
-const KEYFRAMES = [
+export const KEYFRAMES = [
   { t: 0.0, label: "0.0s · Hero Low-Angle Start", phase: "FLIGHT START", img: "/flyover/stills/still-0.0s.png" },
   { t: 1.6, label: "1.6s · Cruise & Section 01", phase: "CRUISE SPEED", img: "/flyover/stills/still-1.6s.png" },
   { t: 2.5, label: "2.5s · Lifted Cards & Edge Chips", phase: "3D PARALLAX LIFT", img: "/flyover/stills/still-2.5s.png" },
@@ -14,7 +25,224 @@ const KEYFRAMES = [
   { t: 11.0, label: "11.0s · End Card & Closing Title", phase: "END CARD HOLD", img: "/flyover/stills/still-11.0s.png" },
 ];
 
-export const FlyoverShowcase: React.FC = () => {
+const getPhaseLabel = (t: number) => {
+  if (t < 7.75) return "01 / CONTINUOUS GLIDE (0.0s – 8.2s)";
+  if (t < 9.25) return "02 / LOG-SCALE RISE (7.75s – 9.25s)";
+  if (t < 9.47) return "03 / OVERHEAD STRIP (9.25s – 9.47s)";
+  if (t < 9.97) return "04 / HERO CARD DIVE (9.47s – 9.97s)";
+  return "05 / END TITLE CARD (9.97s – 14.5s)";
+};
+
+interface FlyoverIntroOverlayProps {
+  isOpen: boolean;
+  onEnterLandingPage: () => void;
+}
+
+/**
+ * Full-viewport 3D WebGL2 Fly-Over Showcase that opens FIRST when the link is opened,
+ * plays the 14.5s 3D fly-over, and then transitions smoothly into the actual landing page.
+ */
+export const FlyoverIntroOverlay: React.FC<FlyoverIntroOverlayProps> = ({
+  isOpen,
+  onEnterLandingPage,
+}) => {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const triggerSmoothExit = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "flyover-cmd", action: "pause" },
+      "*"
+    );
+    if (overlayRef.current) {
+      gsap.to(overlayRef.current, {
+        opacity: 0,
+        scale: 1.02,
+        duration: 0.65,
+        ease: "power3.inOut",
+        onComplete: () => {
+          setIsClosing(false);
+          onEnterLandingPage();
+        },
+      });
+    } else {
+      onEnterLandingPage();
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onMessage = (e: MessageEvent) => {
+      if (!e.data) return;
+      if (e.data.type === "flyover-time") {
+        setCurrentTime(e.data.t);
+        setIsPlaying(e.data.playing);
+      } else if (e.data.type === "flyover-ended") {
+        // Automatically transition to the actual landing page a moment after the 14.5s fly-over finishes
+        setTimeout(() => {
+          triggerSmoothExit();
+        }, 550);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [isOpen, isClosing]);
+
+  if (!isOpen) return null;
+
+  const sendCommand = (cmd: Record<string, any>) => {
+    iframeRef.current?.contentWindow?.postMessage({ type: "flyover-cmd", ...cmd }, "*");
+  };
+
+  const handleTogglePlay = () => {
+    sendCommand({ action: isPlaying ? "pause" : "play" });
+  };
+
+  const handleSeek = (t: number) => {
+    setCurrentTime(t);
+    sendCommand({ action: "seek", t });
+  };
+
+  const handleToggleMute = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    sendCommand({ action: "mute", muted: next });
+  };
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[100] bg-[#f2f3f6] flex flex-col justify-between overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="HackForge AI 3D WebGL2 Fly-Over Showcase"
+    >
+      {/* Top Studio Header Bar */}
+      <div className="preview-topbar shrink-0 border-b border-[#d8cfc0] bg-[#eee9df] px-4 sm:px-8 py-3">
+        <div className="flex items-center gap-3">
+          <div className="window-controls" aria-hidden="true">
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+          <span className="preview-app-title">
+            <span className="mini-mark">H</span> HACKFORGE AI{" "}
+            <span className="muted-slash">/</span> 3D WEBGL2 FLY-OVER SHOWCASE
+          </span>
+        </div>
+
+        <span className="font-mono text-[11px] tracking-[0.1em] text-[#68512f] hidden md:inline">
+          {getPhaseLabel(currentTime)}
+        </span>
+
+        <button
+          type="button"
+          onClick={triggerSmoothExit}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#394b3f] hover:bg-[#68512f] text-[#fffdf8] text-xs font-extrabold uppercase tracking-wider shadow-[0_8px_24px_rgba(41,39,32,0.18)] transition-all"
+        >
+          Open Landing Page <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Center 1440×1152 WebGL2 3D Viewport */}
+      <div className="relative flex-1 w-full flex items-center justify-center bg-[#f2f3f6] overflow-hidden p-2 sm:p-4">
+        <div className="relative h-full max-w-full aspect-[1440/1152] bg-[#f9fbfb] shadow-[0_28px_80px_rgba(26,33,51,0.14)] border border-[#d8cfc0] overflow-hidden">
+          <iframe
+            ref={iframeRef}
+            src="/flyover/index.html?embed=1&autoplay=1"
+            title="HackForge AI 14.5s 3D WebGL2 Fly-Over Intro"
+            className="w-full h-full border-0 block"
+            allow="autoplay"
+          />
+        </div>
+      </div>
+
+      {/* Bottom Interactive Scrubber & Keyframe Bar */}
+      <div className="shrink-0 bg-[#fffdf8] border-t border-[#d8cfc0] px-4 sm:px-8 py-3.5">
+        <div className="max-w-7xl mx-auto flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleTogglePlay}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#394b3f] hover:bg-[#2d3c32] text-[#fffdf8] text-xs font-extrabold uppercase tracking-wider transition-colors"
+              >
+                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                {isPlaying ? "Pause" : "Play"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSeek(0)}
+                className="inline-flex items-center gap-1 px-2.5 py-2 bg-[#f7f4ed] hover:bg-[#eee9df] text-[#292720] border border-[#d5cbb8] text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> 0.0s
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleMute}
+                className="inline-flex items-center gap-1 px-2.5 py-2 bg-[#f7f4ed] hover:bg-[#eee9df] text-[#292720] border border-[#d5cbb8] text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                {isMuted ? "Muted" : "Sound"}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 flex-1 min-w-[220px] max-w-xl">
+              <span className="font-mono text-xs font-bold text-[#394b3f] w-12 text-right">
+                {currentTime.toFixed(2)}s
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={14.5}
+                step={0.01}
+                value={currentTime}
+                onChange={(e) => handleSeek(parseFloat(e.target.value))}
+                className="w-full accent-[#80643d] cursor-pointer h-1.5 bg-[#dfd7c8] rounded-lg"
+                aria-label="Scrub 14.5 second 3D fly-over intro timeline"
+              />
+              <span className="font-mono text-xs text-[#726d62] w-12">14.50s</span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {KEYFRAMES.map((kf) => {
+                const isNear = Math.abs(currentTime - kf.t) < 0.25;
+                return (
+                  <button
+                    key={kf.t}
+                    type="button"
+                    onClick={() => handleSeek(kf.t)}
+                    className={`px-2 py-1 text-[10px] font-mono transition-all border ${
+                      isNear
+                        ? "bg-[#80643d] text-[#fffdf8] border-[#80643d] font-bold"
+                        : "bg-[#f7f4ed] text-[#292720] border-[#d8cfc0] hover:border-[#80643d]"
+                    }`}
+                  >
+                    {kf.t}s
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface FlyoverShowcaseProps {
+  onOpenFullscreenIntro?: () => void;
+}
+
+export const FlyoverShowcase: React.FC<FlyoverShowcaseProps> = ({
+  onOpenFullscreenIntro,
+}) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -63,14 +291,6 @@ export const FlyoverShowcase: React.FC = () => {
     sendCommand({ action: "mute", muted: next });
   };
 
-  const getPhaseLabel = (t: number) => {
-    if (t < 7.75) return "01 / CONTINUOUS GLIDE (0.0s – 8.2s)";
-    if (t < 9.25) return "02 / LOG-SCALE RISE (7.75s – 9.25s)";
-    if (t < 9.47) return "03 / OVERHEAD STRIP (9.25s – 9.47s)";
-    if (t < 9.97) return "04 / HERO CARD DIVE (9.47s – 9.97s)";
-    return "05 / END TITLE CARD (9.97s – 14.5s)";
-  };
-
   return (
     <section
       id="flyover-showcase"
@@ -88,11 +308,22 @@ export const FlyoverShowcase: React.FC = () => {
             <span>Zero cuts. Pure depth.</span>
           </h2>
         </div>
-        <p className="section-intro">
-          Experience the 14.5-second 3D WebGL2 architectural fly-over of HackForge AI—featuring
-          40-tap golden-angle disc depth of field, 16x anisotropic mipmaps, lifted 3D UI cards with
-          cast studio shadows, and procedural sound design.
-        </p>
+        <div className="space-y-4">
+          <p className="section-intro">
+            Experience the 14.5-second 3D WebGL2 architectural fly-over of HackForge AI—featuring
+            40-tap golden-angle disc depth of field, 16x anisotropic mipmaps, lifted 3D UI cards
+            with cast studio shadows, and procedural sound design.
+          </p>
+          {onOpenFullscreenIntro && (
+            <button
+              type="button"
+              onClick={onOpenFullscreenIntro}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#394b3f] hover:bg-[#68512f] text-[#fffdf8] text-xs font-extrabold uppercase tracking-wider transition-colors"
+            >
+              <Maximize2 className="w-3.5 h-3.5" /> Launch Fullscreen 3D Fly-Over Intro
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Studio Film Window */}

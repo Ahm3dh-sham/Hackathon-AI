@@ -6,7 +6,7 @@ import { BlueprintDisplay, ProjectStateBlueprint } from "@/components/BlueprintD
 import { DecryptedText } from "@/components/react-bits/DecryptedText";
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 import { CountUp } from "@/components/react-bits/CountUp";
-import { FlyoverShowcase } from "@/components/FlyoverShowcase";
+import { FlyoverShowcase, FlyoverIntroOverlay } from "@/components/FlyoverShowcase";
 import { ArrowLeft, Loader2, Sparkles, Quote, CheckCircle2, Layers, Cpu } from "lucide-react";
 
 const PRESET_BRIEFS = [
@@ -32,6 +32,8 @@ const PRESET_BRIEFS = [
 ];
 
 export default function Home() {
+  // Show the Embedded 3D Fly-Over Showcase FIRST when the link is opened, then reveal the landing page
+  const [showFlyoverIntro, setShowFlyoverIntro] = useState(true);
   const [brief, setBrief] = useState(
     "Students want to rescue surplus campus meals before they go to waste."
   );
@@ -51,10 +53,17 @@ export default function Home() {
   const previewWindowRef = useRef<HTMLDivElement>(null);
   const liveBlueprintRef = useRef<HTMLElement>(null);
 
-  // GSAP Entrance Animation (Starred Repo: greensock/GSAP)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("capture") === "1") return; // Keep static & instant during Playwright layer capture
+    if (params.get("capture") === "1") {
+      setShowFlyoverIntro(false);
+    }
+  }, []);
+
+  // GSAP Entrance Animation when the actual landing page opens after the 3D Fly-Over Intro
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("capture") === "1" || showFlyoverIntro) return;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
@@ -75,7 +84,7 @@ export default function Home() {
       }
     });
     return () => ctx.revert();
-  }, []);
+  }, [showFlyoverIntro]);
 
   const deriveProjectLabel = (text: string) => {
     const normalized = text.trim().replace(/[“”"']/g, "");
@@ -139,6 +148,12 @@ export default function Home() {
 
   return (
     <>
+      {/* ================= FIRST-LOAD 3D WEBGL2 FLY-OVER INTRO SHOWCASE ================= */}
+      <FlyoverIntroOverlay
+        isOpen={showFlyoverIntro}
+        onEnterLandingPage={() => setShowFlyoverIntro(false)}
+      />
+
       {/* ================= HERO SECTION (Editorial Warm Linen + 3D Layer Markers) ================= */}
       <section className="hero section-wrap" id="top" aria-labelledby="hero-title">
         <div className="hero-copy" ref={heroCopyRef}>
@@ -161,9 +176,13 @@ export default function Home() {
             >
               See a blueprint take shape <span aria-hidden="true">↗</span>
             </a>
-            <a className="text-link" href="#flyover-showcase">
-              Watch 3D Fly-Over <span aria-hidden="true">↓</span>
-            </a>
+            <button
+              type="button"
+              onClick={() => setShowFlyoverIntro(true)}
+              className="text-link bg-transparent border-0 cursor-pointer"
+            >
+              Replay 3D Fly-Over Intro <span aria-hidden="true">↗</span>
+            </button>
           </div>
 
           {/* Live Telemetry Counters (React Bits CountUp + GSAP) */}
@@ -968,7 +987,7 @@ export default function Home() {
       </section>
 
       {/* ================= INTERACTIVE 3D WEBGL2 FLY-OVER STUDIO SHOWCASE ================= */}
-      <FlyoverShowcase />
+      <FlyoverShowcase onOpenFullscreenIntro={() => setShowFlyoverIntro(true)} />
 
       {/* ================= FINAL CTA ================= */}
       <section className="final-cta section-wrap section-pad" id="start" aria-labelledby="final-title">
