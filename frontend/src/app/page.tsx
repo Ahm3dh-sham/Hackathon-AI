@@ -908,11 +908,6 @@ export default function Home() {
                   <b>04</b> Build roadmap <i>.........</i> 10
                 </span>
               </div>
-              <div className="doc-stamp">
-                DEMO
-                <br />
-                PREVIEW
-              </div>
             </div>
             <div className="deliverable-side-note">
               <span className="side-note-line"></span>
@@ -1092,7 +1087,7 @@ export default function Home() {
           toward the first commit.
         </p>
         <a className="button button-primary cta-button" href="#product">
-          Explore the interactive preview <span aria-hidden="true">↗</span>
+          Open Blueprint Studio <span aria-hidden="true">↗</span>
         </a>
         <p className="cta-note">
           HackForge AI live multi-agent blueprint generation is connected above in the Blueprint

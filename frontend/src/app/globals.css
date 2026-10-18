@@ -186,9 +186,32 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .spark { position: absolute; z-index: 3; color: #8c7146; }
 .spark-a { top: -7px; left: 18%; font-size: 22px; animation: spin 22s linear infinite; }
 .spark-b { right: 7%; bottom: 2%; color: #71806a; font-size: 22px; }
-.float-chip { position: absolute; z-index: 4; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #d9d0c2; background: rgba(255,253,248,.96); color: #49453a; font-family: var(--mono); font-size: 8px; letter-spacing: .08em; box-shadow: 0 8px 22px rgba(61, 51, 37, .11); }
-.chip-top { top: 7%; right: -27px; }
-.chip-bottom { bottom: 5%; left: -27px; color: #5f5b50; letter-spacing: 0; }
+.float-chip {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid #d9d0c2;
+  background: #fffdf8;
+  color: #49453a;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .08em;
+  box-shadow: 0 10px 24px rgba(61, 51, 37, .12);
+  pointer-events: none;
+}
+.chip-top {
+  top: -14px;
+  right: 28px;
+}
+.chip-bottom {
+  bottom: -16px;
+  left: 28px;
+  color: #5f5b50;
+  letter-spacing: 0;
+}
 .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #667b62; box-shadow: 0 0 8px rgba(102,123,98,.28); }
 .chip-icon { color: #80643d; font-size: 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -319,14 +342,13 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .footer-bottom { display: flex; min-height: 42px; align-items: center; justify-content: space-between; border-top: 1px solid #d9d1c4; color: #706b60; font-size: 9px; }
 .footer-bottom i { padding-inline: 5px; color: #80643d; font-style: normal; }
 
-/* Responsive adjustments */
 @media (max-width: 1060px) {
   :root { --page: min(100% - 56px, 900px); }
   .hero { grid-template-columns: .9fr 1.1fr; gap: 36px; min-height: 660px; }
   .hero h1 { font-size: clamp(54px, 7vw, 70px); }
   .preview-inner { padding-inline: 19px; }
-  .chip-top { right: -9px; }
-  .chip-bottom { left: -12px; }
+  .chip-top { top: -14px; right: 16px; }
+  .chip-bottom { bottom: -16px; left: 16px; }
   .agents-layout { gap: 55px; }
   .agent-card { grid-template-columns: 40px 1fr 14px; gap: 10px; }
 }
@@ -338,6 +360,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
   .hero-copy { max-width: 610px; }
   .hero h1 { max-width: 580px; font-size: clamp(54px, 11.8vw, 79px); }
   .hero-visual { width: min(100%, 590px); margin-inline: auto; }
+  .float-chip { display: none !important; }
   .section-pad { padding-block: 86px; }
   .split-heading { grid-template-columns: 1fr; gap: 20px; }
   .workflow-steps { grid-template-columns: repeat(2, 1fr); }

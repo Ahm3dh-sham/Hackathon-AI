@@ -66,7 +66,7 @@ export default function RootLayout({
               <a href="#blueprint">The blueprint</a>
               <a href="#talkscript">TalkScript</a>
               <a className="nav-cta" href="#product">
-                Explore the preview <span aria-hidden="true">↗</span>
+                Open Blueprint Studio <span aria-hidden="true">↗</span>
               </a>
             </div>
           </nav>
