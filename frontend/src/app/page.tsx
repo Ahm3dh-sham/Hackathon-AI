@@ -552,7 +552,7 @@ export default function Home() {
                         </>
                       ) : (
                         <>
-                          <span>Play the flow</span>
+                          <span>Submit · Play the flow</span>
                           <span
                             aria-hidden="true"
                             className="w-6 h-6 rounded-full bg-white/15 inline-flex items-center justify-center transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105"
@@ -568,9 +568,23 @@ export default function Home() {
               {error && (
                 <p className="text-xs text-rose-700 font-semibold mt-2 text-right">{error}</p>
               )}
+
+              {/* Embedded Gemini Chatbox inside Hero Studio: completely hidden on initial load, unhides as soon as first AI response arrives */}
+              {blueprintData && (
+                <div className="mt-4">
+                  <GeminiClarificationChat
+                    embedded
+                    activeProjectContext={brief}
+                    seededInitialPrompt={blueprintData.problem_statement}
+                    seededInitialAnswer={`Blueprint synthesized for "${blueprintData.product_spec?.project_name || "your project"}" (${blueprintData.research_data?.domain_category || "AI System"}).\n\n• Core Promise: ${blueprintData.research_data?.unique_value_proposition}\n• MVP Features: ${(blueprintData.product_spec?.mvp_features || []).map((f) => f.title || f.name).join(" · ")}\n\nAsk any follow-up question below to clarify the architecture, database schema, API routes, or pitch script!`}
+                  />
+                </div>
+              )}
+
               <p className="demo-disclaimer">
-                Enter your problem statement &amp; number of teammates above, then click &ldquo;Play
-                the flow&rdquo; or &ldquo;TalkScript &amp; PPT&rdquo;.
+                Enter your problem statement &amp; number of teammates above, then click &ldquo;Submit
+                · Play the flow&rdquo; to generate your blueprint and unlock the Gemini AI
+                Clarification Chatbox.
               </p>
             </div>
           </div>
@@ -584,12 +598,26 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ================= GEMINI AI PROGRESSIVE-REVEAL CLARIFICATION CHATBOX ================= */}
+      {/* On initial page load: shows ONLY prominent input + Submit button (chatbox hidden). */}
+      {/* As soon as the user submits here OR in the Hero Studio above, unhides the full chatbox! */}
+      <section ref={liveBlueprintRef}>
+        <GeminiClarificationChat
+          activeProjectContext={brief}
+          seededInitialPrompt={blueprintData?.problem_statement}
+          seededInitialAnswer={
+            blueprintData
+              ? `Here is the generated blueprint for "${blueprintData.product_spec?.project_name || "your project"}" (${blueprintData.research_data?.domain_category || "AI System"}):\n\n• Core Value Proposition: ${blueprintData.research_data?.unique_value_proposition}\n• Feasibility Score: ${blueprintData.research_data?.feasibility_score || 94}/100\n• Core MVP Features: ${(blueprintData.product_spec?.mvp_features || []).map((f) => f.title || f.name).join(" · ")}\n• Recommended Stack: ${blueprintData.architecture_spec?.recommended_tech_stack?.frontend || "Next.js 14"} + ${blueprintData.architecture_spec?.recommended_tech_stack?.backend || "FastAPI & LangGraph"}\n\nAsk any follow-up question below to clarify the architecture, database schema, API routes, or team pitch script!`
+              : undefined
+          }
+        />
+      </section>
+
       {/* ================= GENERATED LIVE BLUEPRINT DISPLAY (Editorial Studio Dossier) ================= */}
       {blueprintData && (
         <section
-          ref={liveBlueprintRef}
           id="live-blueprint-output"
-          className="section-wrap py-12 space-y-4"
+          className="section-wrap py-8 space-y-4"
         >
           <div className="flex items-center justify-between">
             <button
@@ -630,9 +658,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-      {/* ================= GEMINI AI PROGRESSIVE-REVEAL CLARIFICATION CHATBOX ================= */}
-      <GeminiClarificationChat activeProjectContext={brief} />
 
       {/* ================= TICKER BAND ================= */}
       <section className="ticker-band" aria-label="HackForge AI blueprint components">
