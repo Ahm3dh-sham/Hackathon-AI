@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HackForge AI — 14.5s 3D WebGL2 Fly-Over (1440×1152 @ 60fps)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #f2f3f6;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+    }
+    #stage-wrap {
+      position: relative;
+      width: 1440px;
+      height: 1152px;
+      max-width: 100vw;
+      max-height: 100vh;
+      aspect-ratio: 1440 / 1152;
+      background: #f2f3f6;
+      box-shadow: 0 24px 80px rgba(26, 33, 51, 0.12);
+      overflow: hidden;
+    }
+    canvas#gl-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #hud {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      background: rgba(255, 253, 248, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(128, 100, 61, 0.24);
+      border-radius: 999px;
+      box-shadow: 0 12px 32px rgba(26, 33, 51, 0.1);
+      z-index: 10;
+      transition: opacity 0.25s ease;
+    }
+    body.headless-mode #hud,
+    body.embed-mode #hud {
+      display: none !important;
+    }
+    #hud button {
+      background: #394b3f;
+      color: #fffdf8;
+      border: none;
+      border-radius: 999px;
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+    }
+    #hud button:hover {
+      background: #2c3b31;
+    }
+    #hud input[type="range"] {
+      flex: 1;
+      accent-color: #80643d;
+      cursor: pointer;
+    }
+    #hud .time-readout {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: #292720;
+      min-width: 110px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage-wrap">
+    <canvas id="gl-canvas" width="1440" height="1152"></canvas>
+    <div id="hud">
+      <button id="play-btn" type="button">Play</button>
+      <input id="scrub-input" type="range" min="0" max="14.5" step="0.005" value="0" />
+      <span class="time-readout" id="time-label">0.00s / 14.50s</span>
+    </div>
+  </div>
+
+  <script>
+    const W = 1440;
+    const H = 1152;
+    const DURATION = 14.5;
+    const FOCAL = 1880.0;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("headless") === "1") document.body.classList.add("headless-mode");
+    if (params.get("embed") === "1") document.body.classList.add("embed-mode");
+
+    const canvas = document.getElementById("gl-canvas");
+    const gl = canvas.getContext("webgl2", {
+      alpha: false,
+      antialias: true,
+      preserveDrawingBuffer: true,
+      powerPreference: "high-performance",
+    });
+
+    if (!gl) {
+      throw new Error("WebGL2 is required for the 3D fly-over engine.");
+    }
+
+    const anisoExt =
+      gl.getExtension("EXT_texture_filter_anisotropic") ||
+      gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic") ||
+      gl.getExtension("MOZ_EXT_texture_filter_anisotropic");
+    const maxAniso = anisoExt
+      ? Math.min(16, gl.getParameter(anisoExt.MAX_TEXTURE_MAX_ANISOTROPY_EXT))
+      : 1;
+
+    // ============================================================================
+    // SHADERS:
+    // 1. Studio Floor Shader (#f9fbfb center -> #f2f3f6 corners + soft page shadow)
+    // 2. 3D Quad + 40-Tap Golden-Angle Disc Depth-of-Field Shader + Rounded-Rect Mask
+    // ============================================================================
+
+    const floorVS = `#version 300 es
+      in vec2 aPos;
+      out vec2 vUv;
+      void main() {
+        vUv = aPos * 0.5 + 0.5;
+        gl_Position = vec4(aPos, 0.0, 1.0);
+      }
+    `;
+
+    const floorFS = `#version 300 es
+      precision highp float;
+      in vec2 vUv;
+      out vec4 fragColor;
+      void main() {
+        vec2 centered = (vUv - 0.5) * vec2(1.25, 1.0);
+        float d = clamp(length(centered) * 1.45, 0.0, 1.0);
+        vec3 centerCol = vec3(249.0/255.0, 251.0/255.0, 251.0/255.0); // #f9fbfb
+        vec3 cornerCol = vec3(242.0/255.0, 243.0/255.0, 246.0/255.0); // #f2f3f6
+        vec3 col = mix(centerCol, cornerCol, smoothstep(0.0, 1.0, d));
+        fragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const quadVS = `#version 300 es
+      precision highp float;
+      in vec2 aUnit; // [0..1, 0..1]
+
+      uniform vec4 uRect;       // x, y, w, h in page space
+      uniform float uZ;         // height above page floor (px)
+      uniform float uPitch;     // stand-up angle (radians) around piece's vertical center
+      uniform vec2 uCamLook;    // (camLookX, camLookY) in page space
+      uniform float uCamDist;   // camera distance along view ray (px)
+      uniform float uCamTilt;   // tilt angle off straight-down (radians)
+      uniform float uFocal;     // 1880.0 px
+      uniform vec2 uViewport;   // (1440.0, 1152.0)
+
+      out vec2 vUv;
+      out vec2 vPagePos;
+      out float vEyeDepth;
+
+      void main() {
+        vUv = aUnit;
+        float px = uRect.x + aUnit.x * uRect.z;
+        float py = uRect.y + aUnit.y * uRect.w;
+        float yMid = uRect.y + uRect.w * 0.5;
+        float dy = py - yMid;
+
+        // Stand up by turning about its own middle, top edge (dy < 0) rising toward the lens (+Z)
+        float localY = yMid + dy * cos(uPitch);
+        float localZ = uZ - dy * sin(uPitch);
+
+        vPagePos = vec2(px, py);
+
+        // Camera looks at (uCamLook.x, uCamLook.y, 0.0)
+        // Tilt uCamTilt off straight-down along +Y (gliding backwards down the page while looking up it)
+        float sinT = sin(uCamTilt);
+        float cosT = cos(uCamTilt);
+
+        // Camera position in world space:
+        // At tilt > 0, camera is further down the page (+Y) and above (+Z) looking up-page (-Y) and down (-Z)
+        vec3 camPos = vec3(
+          uCamLook.x,
+          uCamLook.y + uCamDist * sinT,
+          uCamDist * cosT
+        );
+
+        vec3 worldPos = vec3(px, localY, localZ);
+        vec3 rel = worldPos - camPos;
+
+        // Camera basis vectors:
+        // Right = (1, 0, 0)
+        // Up (on screen, top of frame is smaller page Y) = (0, -cosT, sinT)
+        // Forward (from camera toward lookAt) = (0, -sinT, -cosT)
+        float eyeX = rel.x;
+        float eyeY = rel.y * (-cosT) + rel.z * sinT;
+        float eyeZ = rel.y * (-sinT) + rel.z * (-cosT);
+
+        vEyeDepth = max(10.0, eyeZ);
+
+        float ndcX = (eyeX * uFocal / vEyeDepth) / (uViewport.x * 0.5);
+        float ndcY = (eyeY * uFocal / vEyeDepth) / (uViewport.y * 0.5);
+
+        gl_Position = vec4(ndcX, ndcY, 0.0, 1.0);
+      }
+    `;
+
+    const quadFS = `#version 300 es
+      precision highp float;
+      in vec2 vUv;
+      in vec2 vPagePos;
+      in float vEyeDepth;
+
+      uniform sampler2D uTex;
+      uniform vec2 uTexSize;
+      uniform float uFocusDepth;
+      uniform float uDofStrength;
+      uniform float uExtraBlur;     // explicit blur override (px) for shadows / blurred tiles
+      uniform int uRenderMode;      // 0 = normal textured, 1 = flat shadow (#1a2133), 2 = solid bevel (#ffffff), 3 = ambient floor shadow
+      uniform float uOpacity;
+
+      // Page rounded-rect mask & dive hero morph
+      uniform int uUsePageMask;
+      uniform vec4 uMaskRect;       // x, y, w, h in page coordinates
+      uniform float uCornerRadius;  // 24px -> 38px (in page px)
+      uniform float uHeroCutY;      // hero bottom Y in page space
+      uniform float uBelowHeroHaze; // 0..1 fade to studio floor haze (#f6f8f9)
+      uniform float uBelowHeroAlpha;// 1..0 cut to transparent at very end of dive
+
+      out vec4 fragColor;
+
+      float sdRoundRect(vec2 p, vec2 b, float r) {
+        vec2 q = abs(p) - b + vec2(r);
+        return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+      }
+
+      void main() {
+        // 1. Ambient soft wide shadow under the page on the studio floor
+        if (uRenderMode == 3) {
+          vec2 center = uMaskRect.xy + uMaskRect.zw * 0.5;
+          vec2 halfSize = uMaskRect.zw * 0.5;
+          float d = sdRoundRect(vPagePos - center, halfSize, uCornerRadius);
+          float shadowAlpha = (1.0 - smoothstep(-20.0, 115.0, d)) * uOpacity;
+          fragColor = vec4(26.0/255.0, 33.0/255.0, 51.0/255.0, shadowAlpha);
+          return;
+        }
+
+        // 2. Solid white 34px bevel edge for the lifted testimonial card
+        if (uRenderMode == 2) {
+          fragColor = vec4(1.0, 1.0, 1.0, uOpacity);
+          return;
+        }
+
+        // 3. Page rounded-corner & hero-dive mask
+        float maskAlpha = 1.0;
+        float belowHeroFactor = 0.0;
+        if (uUsePageMask == 1) {
+          vec2 center = uMaskRect.xy + uMaskRect.zw * 0.5;
+          vec2 halfSize = uMaskRect.zw * 0.5;
+          float d = sdRoundRect(vPagePos - center, halfSize, uCornerRadius);
+          maskAlpha = 1.0 - smoothstep(-1.2, 1.2, d);
+          if (maskAlpha <= 0.001) discard;
+
+          if (vPagePos.y > uHeroCutY) {
+            belowHeroFactor = smoothstep(uHeroCutY - 24.0, uHeroCutY + 24.0, vPagePos.y);
+          }
+        }
+
+        // 4. Per-pixel Depth of Field blur radius (build Step 4):
+        // blur radius = 75 * (focus - depth) / depth in front of focus
+        // and 6 * (depth - focus) / depth behind it, capped at 120px
+        float dofBlur = 0.0;
+        if (vEyeDepth < uFocusDepth) {
+          dofBlur = 75.0 * (uFocusDepth - vEyeDepth) / vEyeDepth;
+        } else {
+          dofBlur = 6.0 * (vEyeDepth - uFocusDepth) / vEyeDepth;
+        }
+        float blurPx = clamp(dofBlur * uDofStrength + uExtraBlur, 0.0, 120.0);
+
+        // 5. 40 taps on a golden-angle disc, each tap read from a mip level matched to the blur
+        vec4 sum = vec4(0.0);
+        if (blurPx < 0.65) {
+          sum = texture(uTex, vUv);
+        } else {
+          float mip = clamp(log2(max(1.0, blurPx * 0.38)), 0.0, 6.5);
+          vec2 uvRadius = vec2(blurPx) / uTexSize;
+          const int TAPS = 40;
+          const float GOLDEN_ANGLE = 2.39996323;
+          for (int i = 0; i < TAPS; i++) {
+            float fi = float(i);
+            float r = sqrt((fi + 0.5) / float(TAPS));
+            float theta = fi * GOLDEN_ANGLE;
+            vec2 offset = vec2(cos(theta), sin(theta)) * r * uvRadius;
+            vec2 sampleUv = clamp(vUv + offset, vec2(0.001), vec2(0.999));
+            sum += textureLod(uTex, sampleUv, mip);
+          }
+          sum /= float(TAPS);
+        }
+
+        // Cast shadow mode (#1a2133, 26% opacity)
+        if (uRenderMode == 1) {
+          float a = sum.a * uOpacity * maskAlpha;
+          if (a <= 0.002) discard;
+          fragColor = vec4(26.0/255.0, 33.0/255.0, 51.0/255.0, a);
+          return;
+        }
+
+        // Gotchas rule: fade into the studio floor haze colour first, and only cut to transparent at the very end
+        vec3 hazeColor = vec3(246.0/255.0, 248.0/255.0, 249.0/255.0);
+        vec3 rgb = sum.rgb;
+        float alpha = sum.a * uOpacity * maskAlpha;
+
+        if (belowHeroFactor > 0.0) {
+          rgb = mix(rgb, hazeColor, belowHeroFactor * uBelowHeroHaze);
+          alpha *= mix(1.0, uBelowHeroAlpha, belowHeroFactor);
+        }
+
+        float fadeHaze = clamp(1.0 - uOpacity, 0.0, 1.0);
+        if (fadeHaze > 0.0 && uUsePageMask == 0) {
+          rgb = mix(rgb, hazeColor, smoothstep(0.0, 0.7, fadeHaze));
+        }
+
+        if (alpha <= 0.002) discard;
+        fragColor = vec4(rgb, alpha);
+      }
+    `;
+
+    function compileShader(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        throw new Error(gl.getShaderInfoLog(s));
+      }
+      return s;
+    }
+
+    function createProgram(vsSrc, fsSrc) {
+      const p = gl.createProgram();
+      gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vsSrc));
+      gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fsSrc));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+        throw new Error(gl.getProgramInfoLog(p));
+      }
+      return p;
+    }
+
+    const floorProg = createProgram(floorVS, floorFS);
+    const quadProg = createProgram(quadVS, quadFS);
+
+    // Fullscreen floor VAO
+    const floorVao = gl.createVertexArray();
+    gl.bindVertexArray(floorVao);
+    const floorBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, floorBuf);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+      gl.STATIC_DRAW
+    );
+    const floorPosLoc = gl.getAttribLocation(floorProg, "aPos");
+    gl.enableVertexAttribArray(floorPosLoc);
+    gl.vertexAttribPointer(floorPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+    // Subdivided Unit Quad VAO (32x32 grid so perspective + pitch rotation interpolates smoothly)
+    const quadVao = gl.createVertexArray();
+    gl.bindVertexArray(quadVao);
+    const verts = [];
+    const GRID = 24;
+    for (let iy = 0; iy < GRID; iy++) {
+      for (let ix = 0; ix < GRID; ix++) {
+        const u0 = ix / GRID;
+        const v0 = iy / GRID;
+        const u1 = (ix + 1) / GRID;
+        const v1 = (iy + 1) / GRID;
+        verts.push(u0, v0, u1, v0, u0, v1, u0, v1, u1, v0, u1, v1);
+      }
+    }
+    const quadVertCount = verts.length / 2;
+    const quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+    const quadUnitLoc = gl.getAttribLocation(quadProg, "aUnit");
+    gl.enableVertexAttribArray(quadUnitLoc);
+    gl.vertexAttribPointer(quadUnitLoc, 2, gl.FLOAT, false, 0, 0);
+
+    // Uniform locations
+    const U = {
+      uRect: gl.getUniformLocation(quadProg, "uRect"),
+      uZ: gl.getUniformLocation(quadProg, "uZ"),
+      uPitch: gl.getUniformLocation(quadProg, "uPitch"),
+      uCamLook: gl.getUniformLocation(quadProg, "uCamLook"),
+      uCamDist: gl.getUniformLocation(quadProg, "uCamDist"),
+      uCamTilt: gl.getUniformLocation(quadProg, "uCamTilt"),
+      uFocal: gl.getUniformLocation(quadProg, "uFocal"),
+      uViewport: gl.getUniformLocation(quadProg, "uViewport"),
+      uTex: gl.getUniformLocation(quadProg, "uTex"),
+      uTexSize: gl.getUniformLocation(quadProg, "uTexSize"),
+      uFocusDepth: gl.getUniformLocation(quadProg, "uFocusDepth"),
+      uDofStrength: gl.getUniformLocation(quadProg, "uDofStrength"),
+      uExtraBlur: gl.getUniformLocation(quadProg, "uExtraBlur"),
+      uRenderMode: gl.getUniformLocation(quadProg, "uRenderMode"),
+      uOpacity: gl.getUniformLocation(quadProg, "uOpacity"),
+      uUsePageMask: gl.getUniformLocation(quadProg, "uUsePageMask"),
+      uMaskRect: gl.getUniformLocation(quadProg, "uMaskRect"),
+      uCornerRadius: gl.getUniformLocation(quadProg, "uCornerRadius"),
+      uHeroCutY: gl.getUniformLocation(quadProg, "uHeroCutY"),
+      uBelowHeroHaze: gl.getUniformLocation(quadProg, "uBelowHeroHaze"),
+      uBelowHeroAlpha: gl.getUniformLocation(quadProg, "uBelowHeroAlpha"),
+    };
+
+    function createMipTexture(source) {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      if (anisoExt) {
+        gl.texParameterf(gl.TEXTURE_2D, anisoExt.TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
+      }
+      return {
+        tex,
+        w: source.width || W,
+        h: source.height || H,
+      };
+    }
+
+    // Generate the crisp HackForge AI Hexagonal Logo Tile Texture (512x512 with 96px transparent padding for blur headroom)
+    // Inner drawn tile is 320x320 (62.5% of 512), so quad size = targetVisibleSize * 1.6
+    function createLogoTileTexture() {
+      const c = document.createElement("canvas");
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext("2d");
+
+      const pad = 96;
+      const box = 512 - pad * 2; // 320
+      const r = 72;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(pad, pad, box, box, r);
+      const grad = ctx.createLinearGradient(pad, pad, pad + box, pad + box);
+      grad.addColorStop(0, "#fffdf8");
+      grad.addColorStop(1, "#efe9dc");
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = "rgba(128, 100, 61, 0.42)";
+      ctx.stroke();
+
+      // Inner warm brass glow ring
+      ctx.beginPath();
+      ctx.roundRect(pad + 14, pad + 14, box - 28, box - 28, r - 10);
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = "rgba(57, 75, 63, 0.18)";
+      ctx.stroke();
+
+      // Hexagonal Forge Mark
+      ctx.translate(256, 256);
+      ctx.scale(6.2, 6.2);
+
+      // Outer hexagon
+      ctx.beginPath();
+      ctx.moveTo(0, -15.2);
+      ctx.lineTo(14.7, -7);
+      ctx.lineTo(14.7, 7);
+      ctx.lineTo(0, 15.2);
+      ctx.lineTo(-14.7, 7);
+      ctx.lineTo(-14.7, -7);
+      ctx.closePath();
+      ctx.strokeStyle = "#394b3f";
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+
+      // Spokes
+      ctx.beginPath();
+      ctx.moveTo(0, -15); ctx.lineTo(0, -9);
+      ctx.moveTo(14.7, -7); ctx.lineTo(8, -3.5);
+      ctx.moveTo(14.7, 7); ctx.lineTo(8, 3.5);
+      ctx.moveTo(0, 15); ctx.lineTo(0, 9);
+      ctx.moveTo(-14.7, 7); ctx.lineTo(-8, 3.5);
+      ctx.moveTo(-14.7, -7); ctx.lineTo(-8, -3.5);
+      ctx.strokeStyle = "#80643d";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+
+      // Middle solid hexagon
+      ctx.beginPath();
+      ctx.moveTo(0, -9);
+      ctx.lineTo(8, -4.5);
+      ctx.lineTo(8, 4.5);
+      ctx.lineTo(0, 9);
+      ctx.lineTo(-8, 4.5);
+      ctx.lineTo(-8, -4.5);
+      ctx.closePath();
+      ctx.fillStyle = "#394b3f";
+      ctx.fill();
+
+      // Inner warm linen core
+      ctx.beginPath();
+      ctx.moveTo(0, -4.8);
+      ctx.lineTo(4.5, -2.5);
+      ctx.lineTo(4.5, 2.5);
+      ctx.lineTo(0, 4.8);
+      ctx.lineTo(-4.5, 2.5);
+      ctx.lineTo(-4.5, -2.5);
+      ctx.closePath();
+      ctx.fillStyle = "#fffdf8";
+      ctx.fill();
+
+      ctx.restore();
+      return createMipTexture(c);
+    }
+
+    // Helper to convert visible logo tile box [x, y, visibleSize] to padded quad rect
+    function tileQuadRect(x, y, visibleSize) {
+      const full = visibleSize * 1.6;
+      const offset = (full - visibleSize) * 0.5;
+      return [x - offset, y - offset, full, full];
+    }
+
+    // 2D Canvas Texture for the End Card Title Overlay (10.02s - 14.5s)
+    const titleCanvas = document.createElement("canvas");
+    titleCanvas.width = W;
+    titleCanvas.height = H;
+    const titleCtx = titleCanvas.getContext("2d");
+    const titleTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, titleTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    function smoothstep(a, b, x) {
+      const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function easeInOutQuad(x) {
+      const t = Math.max(0, Math.min(1, x));
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    function updateTitleOverlayTexture(t) {
+      titleCtx.clearRect(0, 0, W, H);
+      if (t < 10.0) return false;
+
+      // 10.02s: White badge pill (logo + brand, 21px) fades in at y 44
+      const badgeAlpha = smoothstep(10.02, 10.28, t);
+      if (badgeAlpha > 0) {
+        const badgeLift = (1 - badgeAlpha) * 10;
+        titleCtx.save();
+        titleCtx.globalAlpha = badgeAlpha;
+        const pillW = 224;
+        const pillH = 44;
+        const pillX = (W - pillW) * 0.5;
+        const pillY = 44 + badgeLift;
+
+        titleCtx.shadowColor = "rgba(26, 33, 51, 0.08)";
+        titleCtx.shadowBlur = 18;
+        titleCtx.shadowOffsetY = 6;
+        titleCtx.fillStyle = "#ffffff";
+        titleCtx.beginPath();
+        titleCtx.roundRect(pillX, pillY, pillW, pillH, 999);
+        titleCtx.fill();
+
+        titleCtx.shadowColor = "transparent";
+        titleCtx.lineWidth = 1;
+        titleCtx.strokeStyle = "rgba(26, 33, 51, 0.08)";
+        titleCtx.stroke();
+
+        // Small hexagonal logo icon inside pill
+        const cx = pillX + 28;
+        const cy = pillY + pillH * 0.5;
+        titleCtx.save();
+        titleCtx.translate(cx, cy);
+        titleCtx.beginPath();
+        titleCtx.moveTo(0, -10);
+        titleCtx.lineTo(9, -5);
+        titleCtx.lineTo(9, 5);
+        titleCtx.lineTo(0, 10);
+        titleCtx.lineTo(-9, 5);
+        titleCtx.lineTo(-9, -5);
+        titleCtx.closePath();
+        titleCtx.fillStyle = "#394b3f";
+        titleCtx.fill();
+        titleCtx.beginPath();
+        titleCtx.moveTo(0, -5);
+        titleCtx.lineTo(4.5, -2.5);
+        titleCtx.lineTo(4.5, 2.5);
+        titleCtx.lineTo(0, 5);
+        titleCtx.lineTo(-4.5, 2.5);
+        titleCtx.lineTo(-4.5, -2.5);
+        titleCtx.closePath();
+        titleCtx.fillStyle = "#fffdf8";
+        titleCtx.fill();
+        titleCtx.restore();
+
+        titleCtx.font = "600 21px 'Geist', sans-serif";
+        titleCtx.fillStyle = "#1d1f24";
+        titleCtx.textBaseline = "middle";
+        titleCtx.fillText("HackForge AI", pillX + 48, cy + 1);
+        titleCtx.restore();
+      }
+
+      // 10.12s: Line 1 at 74px (Geist 500), one word every 0.06s
+      const line1Words = ["From", "problem", "statement", "to", "blueprint."];
+      titleCtx.font = "500 74px 'Geist', sans-serif";
+      titleCtx.textBaseline = "alphabetic";
+      const wordGap1 = 19;
+      const widths1 = line1Words.map((w) => titleCtx.measureText(w).width);
+      const totalW1 = widths1.reduce((a, b) => a + b, 0) + wordGap1 * (line1Words.length - 1);
+      let cursorX1 = (W - totalW1) * 0.5;
+      const baseY1 = 160;
+
+      for (let i = 0; i < line1Words.length; i++) {
+        const wStart = 10.12 + i * 0.06;
+        const p = smoothstep(wStart, wStart + 0.28, t);
+        if (p > 0) {
+          titleCtx.save();
+          titleCtx.globalAlpha = p;
+          const yOff = (1 - p) * 14;
+          const blurPx = (1 - p) * 8;
+          titleCtx.filter = blurPx > 0.4 ? `blur(${blurPx.toFixed(1)}px)` : "none";
+          titleCtx.fillStyle = "#18191e";
+          titleCtx.fillText(line1Words[i], cursorX1, baseY1 + yOff);
+          titleCtx.restore();
+        }
+        cursorX1 += widths1[i] + wordGap1;
+      }
+
+      // 10.36s: Italic tail at 82px in grey #8b8b92 (Instrument Serif italic),
+      // one word every 0.05s, each word rising 16px out of a 12px blur in 0.34s
+      const line2Words = ["in", "fifteen", "seconds."];
+      titleCtx.font = "italic 400 82px 'Instrument Serif', Georgia, serif";
+      const wordGap2 = 20;
+      const widths2 = line2Words.map((w) => titleCtx.measureText(w).width);
+      const totalW2 = widths2.reduce((a, b) => a + b, 0) + wordGap2 * (line2Words.length - 1);
+      let cursorX2 = (W - totalW2) * 0.5;
+      const baseY2 = 242;
+
+      for (let i = 0; i < line2Words.length; i++) {
+        const wStart = 10.36 + i * 0.05;
+        const raw = Math.max(0, Math.min(1, (t - wStart) / 0.34));
+        const p = 1 - Math.pow(1 - raw, 3);
+        if (raw > 0) {
+          titleCtx.save();
+          titleCtx.globalAlpha = p;
+          const yOff = (1 - p) * 16.0;
+          const blurPx = (1 - p) * 12.0;
+          titleCtx.filter = blurPx > 0.35 ? `blur(${blurPx.toFixed(1)}px)` : "none";
+          titleCtx.fillStyle = "#8b8b92";
+          titleCtx.fillText(line2Words[i], cursorX2, baseY2 + yOff);
+          titleCtx.restore();
+        }
+        cursorX2 += widths2[i] + wordGap2;
+      }
+
+      gl.bindTexture(gl.TEXTURE_2D, titleTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, titleCanvas);
+      return true;
+    }
+
+    // ============================================================================
+    // CONTINUOUS SPEED CURVE INTEGRATION & CAMERA SOLVER (Build Steps 3 & 6)
+    // ============================================================================
+    // Speed down the page as a share of cruise:
+    // 0 at 0s, 0.5 by 0.6s, held at 0.5 to 1.25s, 1.0 by 1.6s,
+    // held between 0.94 and 1.1 to 7.3s, then easing to 0.12 by 8.3s.
+    function speedShareAt(t) {
+      if (t <= 0) return 0;
+      if (t < 0.6) return 0.5 * smoothstep(0.0, 0.6, t);
+      if (t < 1.25) return 0.5;
+      if (t < 1.6) return lerp(0.5, 1.0, smoothstep(1.25, 1.6, t));
+      if (t < 7.3) {
+        return 1.0 + 0.03 * Math.sin(((t - 1.6) / 5.7) * Math.PI);
+      }
+      if (t < 8.3) return lerp(1.0, 0.12, smoothstep(7.3, 8.3, t));
+      return 0.12 * Math.max(0, 1 - (t - 8.3) / 0.5);
+    }
+
+    // Build numerical integral table for speedShare(t) from 0..8.65s
+    const DT = 0.001;
+    const STEPS = 8700;
+    const integralTable = new Float64Array(STEPS + 1);
+    for (let i = 1; i <= STEPS; i++) {
+      const tPrev = (i - 1) * DT;
+      const tCurr = i * DT;
+      integralTable[i] = integralTable[i - 1] + 0.5 * (speedShareAt(tPrev) + speedShareAt(tCurr)) * DT;
+    }
+
+    function integratedShare(t) {
+      const clamped = Math.max(0, Math.min(8.65, t));
+      const idx = Math.floor(clamped / DT);
+      const frac = clamped / DT - idx;
+      if (idx >= STEPS) return integralTable[STEPS];
+      return lerp(integralTable[idx], integralTable[idx + 1], frac);
+    }
+
+    // Trapezoid speed integral for the log-scale Rise (7.75s - 9.25s):
+    // speeding up 7.75-8.35s, even 8.35-8.95s, slowing to a stop at 9.25s
+    function trapezoidRiseProgress(t) {
+      if (t <= 7.75) return 0;
+      if (t >= 9.25) return 1;
+      const totalArea = 1.05;
+      let area = 0;
+      if (t <= 8.35) {
+        const dt = t - 7.75;
+        area = 0.5 * (dt / 0.6) * dt;
+      } else if (t <= 8.95) {
+        area = 0.3 + (t - 8.35);
+      } else {
+        const dt = t - 8.95;
+        const rem = 0.3 - dt;
+        area = 0.3 + 0.6 + (0.15 - 0.5 * (rem / 0.3) * rem);
+      }
+      return Math.max(0, Math.min(1, area / totalArea));
+    }
+
+    // ============================================================================
+    // SCENE ASSETS & LAYER DEFINITIONS
+    // ============================================================================
+    let sceneReady = false;
+    let meta = null;
+    let basePageTex = null;
+    let logoTileTex = null;
+    const layerMap = new Map();
+
+    async function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(new Error(`Failed to load ${url}`));
+        img.src = url;
+      });
+    }
+
+    async function initScene() {
+      const res = await fetch("/flyover/layers.json");
+      meta = await res.json();
+
+      const baseImg = await loadImage("/flyover/page-base.png");
+      basePageTex = createMipTexture(baseImg);
+      logoTileTex = createLogoTileTexture();
+
+      for (const layer of meta.layers) {
+        const img = await loadImage(layer.file);
+        layerMap.set(layer.id, {
+          ...layer,
+          texObj: createMipTexture(img),
+        });
+      }
+
+      sceneReady = true;
+      window.__FLYOVER_READY__ = true;
+      seek(currentTime);
+    }
+
+    // Compute camera & page mask parameters at time t (0 <= t <= 14.5)
+    function computeCamera(t) {
+      const pageH = meta ? meta.pageHeight : 5401;
+      const heroBottom = meta ? meta.heroBottom : 920;
+      const footerY = meta ? meta.footerY : pageH - 180;
+
+      // At t = 0.0s, center on the hero studio mockup & hero button (yStart = 525)
+      // At t = 8.0s, arrive at footerY
+      const yStart = 525;
+      const shareAt8 = integratedShare(8.0);
+      const cruisePxPerSec = (footerY - yStart) / shareAt8;
+
+      const flightY = yStart + cruisePxPerSec * integratedShare(t);
+
+      // Flight distance: eases out monotonically from 1360px to 1700px (0 -> 7.75s)
+      const flightDist = lerp(1360.0, 1700.0, smoothstep(0.0, 7.75, Math.min(t, 7.75)));
+
+      // Overhead target distance so the full page fits with bottom edge 42px above frame bottom (y = 1110)
+      const overheadScale = (H - 84.0) / pageH;
+      const distOverhead = FOCAL / overheadScale;
+      const lookYOverhead = pageH * 0.5;
+
+      // Hero landed card geometry (9.97s - 14.5s):
+      // Landed width = 1018px (scale = 1018 / 1440 = 0.7069444), top edge at screen y = 283px
+      const holdCreep = t > 10.6 ? 1.0 + 0.02 * smoothstep(10.6, 14.5, t) : 1.0;
+      const heroLandedScale = (1018.0 / W) * holdCreep;
+      const distHeroLanded = FOCAL / heroLandedScale;
+      const lookYHeroLanded = (H * 0.5 - 283.0) / heroLandedScale;
+
+      let camDist = flightDist;
+      let camLookY = flightY;
+      let camTilt = (56.0 * Math.PI) / 180.0;
+      let dofStrength = 1.0;
+
+      let maskH = pageH;
+      let cornerRadiusScreen = 24.0;
+      let belowHeroHaze = 0.0;
+      let belowHeroAlpha = 1.0;
+
+      if (t < 7.75) {
+        camDist = flightDist;
+        camLookY = flightY;
+      } else if (t < 9.25) {
+        const rp = trapezoidRiseProgress(t);
+        const distAt775 = lerp(1360.0, 1700.0, 1.0);
+        camDist = Math.exp(lerp(Math.log(distAt775), Math.log(distOverhead), rp));
+
+        const flatP = smoothstep(8.15, 8.95, t);
+        camTilt = lerp((56.0 * Math.PI) / 180.0, 0.0, flatP);
+        dofStrength = 1.0 - smoothstep(8.0, 8.85, t);
+
+        const handoff = smoothstep(8.05, 8.85, t);
+        const currentScale = FOCAL / camDist;
+        const bottomHoldLookY = pageH - (H * 0.5 - 42.0) / currentScale;
+        const pinnedLookY = lerp(bottomHoldLookY, lookYOverhead, smoothstep(8.55, 9.25, t));
+        camLookY = lerp(flightY, pinnedLookY, handoff);
+      } else if (t < 9.47) {
+        const op = (t - 9.25) / (9.47 - 9.25);
+        camDist = distOverhead * (1.0 - 0.035 * op);
+        camTilt = 0.0;
+        camLookY = lookYOverhead;
+        dofStrength = 0.0;
+      } else if (t < 9.97) {
+        const dp = (t - 9.47) / (9.97 - 9.47);
+        const eased = easeInOutQuad(dp);
+        const distStart = distOverhead * 0.965;
+        camDist = Math.exp(lerp(Math.log(distStart), Math.log(distHeroLanded), eased));
+        camTilt = 0.0;
+        dofStrength = 0.0;
+
+        const currentScale = FOCAL / camDist;
+        const topDrop = smoothstep(0.28, 1.0, dp);
+        const topScreenY = lerp(42.0, 283.0, easeInOutQuad(topDrop));
+        camLookY = (H * 0.5 - topScreenY) / currentScale;
+
+        belowHeroHaze = smoothstep(0.0, 0.68, dp);
+        belowHeroAlpha = 1.0 - smoothstep(0.55, 0.95, dp);
+        maskH = lerp(pageH, heroBottom, smoothstep(0.35, 1.0, dp));
+        cornerRadiusScreen = lerp(24.0, 38.0, eased);
+      } else {
+        camDist = distHeroLanded;
+        camTilt = 0.0;
+        camLookY = lookYHeroLanded;
+        dofStrength = 0.0;
+        belowHeroHaze = 1.0;
+        belowHeroAlpha = 0.0;
+        maskH = heroBottom;
+        cornerRadiusScreen = 38.0;
+      }
+
+      const currentScale = FOCAL / camDist;
+      const cornerRadiusPage = cornerRadiusScreen / currentScale;
+
+      return {
+        camLookX: W * 0.5,
+        camLookY,
+        camDist,
+        camTilt,
+        dofStrength,
+        maskRect: [0, 0, W, maskH],
+        cornerRadiusPage,
+        heroBottom,
+        belowHeroHaze,
+        belowHeroAlpha,
+      };
+    }
+
+    // Draw a single 3D quad
+    function drawQuad({
+      texObj,
+      rect,
+      z = 0,
+      pitch = 0,
+      opacity = 1,
+      extraBlur = 0,
+      renderMode = 0,
+      usePageMask = 0,
+      cam,
+    }) {
+      if (opacity <= 0.002) return;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texObj.tex);
+      gl.uniform1i(U.uTex, 0);
+      gl.uniform2f(U.uTexSize, texObj.w, texObj.h);
+      gl.uniform4f(U.uRect, rect[0], rect[1], rect[2], rect[3]);
+      gl.uniform1f(U.uZ, z);
+      gl.uniform1f(U.uPitch, pitch);
+      gl.uniform2f(U.uCamLook, cam.camLookX, cam.camLookY);
+      gl.uniform1f(U.uCamDist, cam.camDist);
+      gl.uniform1f(U.uCamTilt, cam.camTilt);
+      gl.uniform1f(U.uFocal, FOCAL);
+      gl.uniform2f(U.uViewport, W, H);
+      gl.uniform1f(U.uFocusDepth, cam.camDist);
+      gl.uniform1f(U.uDofStrength, cam.dofStrength);
+      gl.uniform1f(U.uExtraBlur, extraBlur);
+      gl.uniform1i(U.uRenderMode, renderMode);
+      gl.uniform1f(U.uOpacity, opacity);
+      gl.uniform1i(U.uUsePageMask, usePageMask);
+      gl.uniform4f(
+        U.uMaskRect,
+        cam.maskRect[0],
+        cam.maskRect[1],
+        cam.maskRect[2],
+        cam.maskRect[3]
+      );
+      gl.uniform1f(U.uCornerRadius, cam.cornerRadiusPage);
+      gl.uniform1f(U.uHeroCutY, cam.heroBottom);
+      gl.uniform1f(U.uBelowHeroHaze, cam.belowHeroHaze);
+      gl.uniform1f(U.uBelowHeroAlpha, cam.belowHeroAlpha);
+
+      gl.drawArrays(gl.TRIANGLES, 0, quadVertCount);
+    }
+
+    // Draw a lifted piece with its flat #1a2133 cast shadow on the page beneath it (Build Step 5):
+    // offset (0.10*z, 4 + 0.36*z), blurred 7 + 0.5*z, 26% opacity
+    function drawLiftedPiece({
+      texObj,
+      rect,
+      z,
+      pitchDeg,
+      opacity = 1,
+      extraBlur = 0,
+      bevelBottomPx = 0,
+      cam,
+    }) {
+      if (!texObj || opacity <= 0.002) return;
+      const pitchRad = (pitchDeg * Math.PI) / 180.0;
+
+      // 1. Cast shadow on the page surface below
+      if (z > 1.0) {
+        const shadowOffsetX = 0.1 * z;
+        const shadowOffsetY = 4.0 + 0.36 * z;
+        const shadowBlur = 7.0 + 0.5 * z;
+        drawQuad({
+          texObj,
+          rect: [rect[0] + shadowOffsetX, rect[1] + shadowOffsetY, rect[2], rect[3]],
+          z: 0.5,
+          pitch: 0.0,
+          opacity: 0.26 * opacity,
+          extraBlur: shadowBlur,
+          renderMode: 1,
+          cam,
+        });
+      }
+
+      // 2. Optional 34px white extruded edge on the testimonial card (5.45-6.3s)
+      if (bevelBottomPx > 0.5) {
+        const pad = 28;
+        const innerX = rect[0] + pad;
+        const innerBottomY = rect[1] + rect[3] - pad;
+        const innerW = rect[2] - pad * 2;
+        drawQuad({
+          texObj,
+          rect: [innerX, innerBottomY - 4, innerW, bevelBottomPx],
+          z: Math.max(2.0, z * 0.72),
+          pitch: pitchRad * 0.5,
+          opacity,
+          extraBlur: 0,
+          renderMode: 2,
+          cam,
+        });
+      }
+
+      // 3. The lifted piece itself
+      drawQuad({
+        texObj,
+        rect,
+        z,
+        pitch: pitchRad,
+        opacity,
+        extraBlur,
+        renderMode: 0,
+        cam,
+      });
+    }
+
+    // ============================================================================
+    // DETERMINISTIC RENDER AT TIME t (No timers, no CSS transitions)
+    // ============================================================================
+    let currentTime = 0;
+
+    function renderSingleSubframe(t) {
+      gl.viewport(0, 0, W, H);
+      gl.disable(gl.DEPTH_TEST);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      // 1. Draw Studio Floor (#f9fbfb center -> #f2f3f6 corners)
+      gl.useProgram(floorProg);
+      gl.bindVertexArray(floorVao);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      if (!sceneReady) return;
+
+      const cam = computeCamera(t);
+      gl.useProgram(quadProg);
+      gl.bindVertexArray(quadVao);
+
+      // 2. Draw Soft Wide Ambient Shadow under the page on the studio floor
+      drawQuad({
+        texObj: basePageTex,
+        rect: [-140, -140, W + 280, meta.pageHeight + 280],
+        z: 0,
+        pitch: 0,
+        opacity: 0.16,
+        renderMode: 3,
+        usePageMask: 1,
+        cam,
+      });
+
+      // 3. Draw the Base Page Quad on the floor (z = 0) with 24px -> 38px rounded corners
+      drawQuad({
+        texObj: basePageTex,
+        rect: [0, 0, W, meta.pageHeight],
+        z: 0,
+        pitch: 0,
+        opacity: 1.0,
+        renderMode: 0,
+        usePageMask: 1,
+        cam,
+      });
+
+      const getPiece = (id) => layerMap.get(id);
+      const nonHeroFade = t < 9.45 ? 1.0 : 1.0 - smoothstep(9.45, 9.85, t);
+      const flattenFactor = 1.0 - smoothstep(8.05, 8.85, t);
+
+      const drawQueue = [];
+
+      // --- HERO PIECES ---
+      const heroBtn = getPiece("hero-button");
+      if (heroBtn) {
+        const lift = smoothstep(0.05, 0.9, t) * flattenFactor;
+        drawQueue.push({
+          texObj: heroBtn.texObj,
+          rect: [heroBtn.clip.x, heroBtn.clip.y, heroBtn.clip.width, heroBtn.clip.height],
+          z: 18.0 * lift,
+          pitchDeg: 12.0 * lift,
+          opacity: 1.0,
+        });
+      }
+
+      const heroMockup = getPiece("hero-mockup");
+      if (heroMockup) {
+        const lift = smoothstep(0.15, 0.95, t) * flattenFactor;
+        drawQueue.push({
+          texObj: heroMockup.texObj,
+          rect: [
+            heroMockup.clip.x,
+            heroMockup.clip.y,
+            heroMockup.clip.width,
+            heroMockup.clip.height,
+          ],
+          z: 24.0 * lift,
+          pitchDeg: 8.0 * lift,
+          opacity: 1.0,
+        });
+      }
+
+      // 0.1 - 1.35s: Hero's chips rise to 60-80px and stand up 30°
+      const heroChipP = smoothstep(0.1, 1.35, t) * flattenFactor;
+      const chipTop = getPiece("hero-chip-top");
+      if (chipTop) {
+        drawQueue.push({
+          texObj: chipTop.texObj,
+          rect: [chipTop.clip.x, chipTop.clip.y, chipTop.clip.width, chipTop.clip.height],
+          z: 74.0 * heroChipP,
+          pitchDeg: 30.0 * heroChipP,
+          opacity: 1.0,
+        });
+      }
+      const chipBot = getPiece("hero-chip-bottom");
+      if (chipBot) {
+        drawQueue.push({
+          texObj: chipBot.texObj,
+          rect: [chipBot.clip.x, chipBot.clip.y, chipBot.clip.width, chipBot.clip.height],
+          z: 64.0 * heroChipP,
+          pitchDeg: 30.0 * heroChipP,
+          opacity: 1.0,
+        });
+      }
+
+      // --- SECTION 01 (SECOND SECTION): 1.35 - 2.7s ---
+      // Main cards lift to 100-130px and stand up 46°
+      const sec2LiftP = smoothstep(1.35, 2.35, t) * (1.0 - 0.5 * smoothstep(2.9, 3.8, t)) * flattenFactor;
+      const sec2Card1 = getPiece("sec2-card-1");
+      if (sec2Card1 && nonHeroFade > 0) {
+        drawQueue.push({
+          texObj: sec2Card1.texObj,
+          rect: [sec2Card1.clip.x, sec2Card1.clip.y, sec2Card1.clip.width, sec2Card1.clip.height],
+          z: 118.0 * sec2LiftP,
+          pitchDeg: 46.0 * sec2LiftP,
+          opacity: nonHeroFade,
+        });
+      }
+      const sec2Card2 = getPiece("sec2-card-2");
+      if (sec2Card2 && nonHeroFade > 0) {
+        drawQueue.push({
+          texObj: sec2Card2.texObj,
+          rect: [sec2Card2.clip.x, sec2Card2.clip.y, sec2Card2.clip.width, sec2Card2.clip.height],
+          z: 126.0 * sec2LiftP,
+          pitchDeg: 46.0 * sec2LiftP,
+          opacity: nonHeroFade,
+        });
+      }
+
+      // 1.35 - 2.7s: Two of its chips fly up to about 200px, stand up 54° and pass the left and right edges at 2.5s
+      const sec2ChipP = smoothstep(1.35, 2.55, t) * flattenFactor;
+      const sec2ChipOut = smoothstep(1.65, 2.7, t);
+      const sec2ChipFade = (1.0 - smoothstep(2.58, 2.95, t)) * nonHeroFade;
+      const sec2ChipL = getPiece("sec2-chip-left");
+      if (sec2ChipL && sec2ChipFade > 0) {
+        drawQueue.push({
+          texObj: sec2ChipL.texObj,
+          rect: [
+            sec2ChipL.clip.x - 580.0 * sec2ChipOut,
+            sec2ChipL.clip.y + 110.0 * sec2ChipOut,
+            sec2ChipL.clip.width,
+            sec2ChipL.clip.height,
+          ],
+          z: 200.0 * sec2ChipP,
+          pitchDeg: 54.0 * sec2ChipP,
+          opacity: sec2ChipFade,
+        });
+      }
+      const sec2ChipR = getPiece("sec2-chip-right");
+      if (sec2ChipR && sec2ChipFade > 0) {
+        drawQueue.push({
+          texObj: sec2ChipR.texObj,
+          rect: [
+            sec2ChipR.clip.x + 420.0 * sec2ChipOut,
+            sec2ChipR.clip.y + 110.0 * sec2ChipOut,
+            sec2ChipR.clip.width,
+            sec2ChipR.clip.height,
+          ],
+          z: 204.0 * sec2ChipP,
+          pitchDeg: 54.0 * sec2ChipP,
+          opacity: sec2ChipFade,
+        });
+      }
+
+      // --- MIDDLE SECTIONS (3.0 - 7.3s): Keep most lifts tiny (20-40px) ---
+      const agents1 = getPiece("agents-card-1");
+      if (agents1 && nonHeroFade > 0) {
+        const p = smoothstep(2.7, 3.6, t) * flattenFactor;
+        drawQueue.push({
+          texObj: agents1.texObj,
+          rect: [agents1.clip.x, agents1.clip.y, agents1.clip.width, agents1.clip.height],
+          z: 32.0 * p,
+          pitchDeg: 20.0 * p,
+          opacity: nonHeroFade,
+        });
+      }
+      const agents2 = getPiece("agents-card-2");
+      if (agents2 && nonHeroFade > 0) {
+        const p = smoothstep(3.0, 3.9, t) * flattenFactor;
+        drawQueue.push({
+          texObj: agents2.texObj,
+          rect: [agents2.clip.x, agents2.clip.y, agents2.clip.width, agents2.clip.height],
+          z: 36.0 * p,
+          pitchDeg: 22.0 * p,
+          opacity: nonHeroFade,
+        });
+      }
+      const docPaper = getPiece("deliverable-paper");
+      if (docPaper && nonHeroFade > 0) {
+        const p = smoothstep(4.1, 5.1, t) * flattenFactor;
+        drawQueue.push({
+          texObj: docPaper.texObj,
+          rect: [docPaper.clip.x, docPaper.clip.y, docPaper.clip.width, docPaper.clip.height],
+          z: 38.0 * p,
+          pitchDeg: 24.0 * p,
+          opacity: nonHeroFade,
+        });
+      }
+
+      // --- 5.45 - 6.3s: TESTIMONIAL CARD rises from 22 to 112px, stands up 30° and shows a 34px white edge ---
+      const testCard = getPiece("testimonial-card");
+      if (testCard && nonHeroFade > 0) {
+        const baseLift = smoothstep(4.6, 5.45, t);
+        const heroRise = smoothstep(5.45, 6.3, t);
+        const zVal = lerp(22.0 * baseLift, 112.0, heroRise) * flattenFactor;
+        const pitchVal = 30.0 * heroRise * flattenFactor;
+        const bevelPx = 34.0 * heroRise * flattenFactor;
+        drawQueue.push({
+          texObj: testCard.texObj,
+          rect: [testCard.clip.x, testCard.clip.y, testCard.clip.width, testCard.clip.height],
+          z: zVal,
+          pitchDeg: pitchVal,
+          bevelBottomPx: bevelPx,
+          opacity: nonHeroFade,
+        });
+      }
+
+      const benefit1 = getPiece("benefit-card-1");
+      if (benefit1 && nonHeroFade > 0) {
+        const p = smoothstep(6.2, 7.1, t) * flattenFactor;
+        drawQueue.push({
+          texObj: benefit1.texObj,
+          rect: [benefit1.clip.x, benefit1.clip.y, benefit1.clip.width, benefit1.clip.height],
+          z: 28.0 * p,
+          pitchDeg: 18.0 * p,
+          opacity: nonHeroFade,
+        });
+      }
+
+      // --- FOUR FLOATING LOGO TILES ---
+      const btnRightX = heroBtn ? heroBtn.x + heroBtn.width + 14 : 365;
+      const btnMidY = heroBtn ? heroBtn.y + heroBtn.height * 0.5 - 16 : 458;
+
+      if (t < 2.65) {
+        const liftP = smoothstep(0.1, 1.35, t);
+        const trailP = smoothstep(1.2, 2.4, t);
+        const exitP = smoothstep(1.85, 2.55, t);
+        const tileAlpha = 1.0 - smoothstep(2.25, 2.6, t);
+
+        const cornerTargets = [
+          { x: -95, y: 70, size: 176, z: 165, pitch: 28 },
+          { x: 55, y: 185, size: 144, z: 138, pitch: 24 },
+          { x: W - 95, y: 65, size: 192, z: 175, pitch: 30 },
+          { x: W - 210, y: 195, size: 152, z: 146, pitch: 25 },
+        ];
+
+        for (let i = 0; i < 4; i++) {
+          const startX = btnRightX + (i % 2) * 38;
+          const startY = btnMidY + Math.floor(i / 2) * 36;
+          const ct = cornerTargets[i];
+          const size = lerp(32, ct.size, liftP);
+          const x = lerp(startX, ct.x, liftP);
+          const y = lerp(startY, ct.y, liftP) + 300.0 * trailP - 520.0 * exitP;
+          const z = lerp(6.0, ct.z, liftP);
+          const pitchDeg = lerp(0.0, ct.pitch, liftP);
+
+          drawQueue.push({
+            texObj: logoTileTex,
+            rect: tileQuadRect(x, y, size),
+            z,
+            pitchDeg,
+            opacity: tileAlpha,
+          });
+        }
+      }
+
+      // 5.4s: A logo tile drifts past the left edge close and blurred
+      if (t > 4.75 && t < 6.05) {
+        const p = (t - 4.75) / (6.05 - 4.75);
+        const alpha = smoothstep(4.75, 5.05, t) * (1.0 - smoothstep(5.75, 6.05, t));
+        const tileY = cam.camLookY + lerp(260, -280, p);
+        drawQueue.push({
+          texObj: logoTileTex,
+          rect: tileQuadRect(30, tileY, 200),
+          z: 360.0,
+          pitchDeg: 34.0,
+          extraBlur: 24.0,
+          opacity: alpha,
+        });
+      }
+
+      // 9.47 - 14.5s: Dive & End Card Logo Tiles
+      if (t >= 9.45) {
+        const enterP = smoothstep(9.5, 10.05, t);
+        const drift = t > 10.0 ? (t - 10.0) * 3.2 : 0.0;
+
+        // Top-left hero card corner tile
+        drawQueue.push({
+          texObj: logoTileTex,
+          rect: tileQuadRect(-65 - (1 - enterP) * 80, -52 + drift * 1.2, 138),
+          z: 42.0 * enterP,
+          pitchDeg: 0,
+          opacity: enterP,
+        });
+
+        // Top-right hero card corner tile
+        drawQueue.push({
+          texObj: logoTileTex,
+          rect: tileQuadRect(W - 75 + (1 - enterP) * 80, -48 - drift * 1.1, 146),
+          z: 48.0 * enterP,
+          pitchDeg: 0,
+          opacity: enterP,
+        });
+
+        // Crisp tile at the right edge
+        drawQueue.push({
+          texObj: logoTileTex,
+          rect: tileQuadRect(W + 78 + (1 - enterP) * 90, 340 + drift * 1.5, 126),
+          z: 60.0 * enterP,
+          pitchDeg: 0,
+          opacity: enterP,
+        });
+
+        // Two huge soft blurs drifting in at the bottom corners (with 96px transparent texture padding so blur never clips!)
+        const bottomEnter = smoothstep(9.6, 10.35, t);
+        drawQueue.push({
+          texObj: logoTileTex,
+          rect: tileQuadRect(-230 - (1 - bottomEnter) * 110, 740 - drift * 2.0, 340),
+          z: 95.0,
+          pitchDeg: 0,
+          extraBlur: 34.0,
+          opacity: 0.85 * bottomEnter,
+        });
+        drawQueue.push({
+          texObj: logoTileTex,
+          rect: tileQuadRect(W - 110 + (1 - bottomEnter) * 110, 760 + drift * 2.0, 355),
+          z: 95.0,
+          pitchDeg: 0,
+          extraBlur: 36.0,
+          opacity: 0.85 * bottomEnter,
+        });
+      }
+
+      // Painter's Algorithm (Build Step 2: drawn lowest z first with no depth buffer)
+      drawQueue.sort((a, b) => a.z - b.z);
+      for (const item of drawQueue) {
+        drawLiftedPiece({ ...item, cam });
+      }
+
+      // 4. End Card Title Overlay (10.02s - 14.5s) drawn in screen space
+      if (updateTitleOverlayTexture(t)) {
+        // Screen-space ortho quad using floorProg/quadProg with identity lookAt
+        const orthoCam = {
+          camLookX: W * 0.5,
+          camLookY: H * 0.5,
+          camDist: FOCAL,
+          camTilt: 0.0,
+          dofStrength: 0.0,
+          maskRect: [0, 0, W, H],
+          cornerRadiusPage: 0.0,
+          heroBottom: H,
+          belowHeroHaze: 0.0,
+          belowHeroAlpha: 1.0,
+        };
+        drawQuad({
+          texObj: { tex: titleTex, w: W, h: H },
+          rect: [0, 0, W, H],
+          z: 0,
+          pitch: 0,
+          opacity: 1.0,
+          extraBlur: 0,
+          renderMode: 0,
+          usePageMask: 0,
+          cam: orthoCam,
+        });
+      }
+    }
+
+    // Main deterministic seek(t) entry point
+    function seek(t) {
+      currentTime = Math.max(0, Math.min(DURATION, Number(t) || 0));
+      renderSingleSubframe(currentTime);
+
+      const scrub = document.getElementById("scrub-input");
+      const label = document.getElementById("time-label");
+      if (scrub) scrub.value = String(currentTime);
+      if (label) label.textContent = `${currentTime.toFixed(2)}s / 14.50s`;
+
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { type: "flyover-time", t: currentTime, playing: isPlaying },
+          "*"
+        );
+      }
+    }
+
+    window.seek = seek;
+
+    // ============================================================================
+    // PROCEDURAL STUDIO AUDIO SYNTHESIZER
+    // Whooshes on 8.66s & 9.80s, Deep Cinematic Impact Hit on 9.97s
+    // ============================================================================
+    let audioCtx = null;
+    let isMuted = false;
+    let triggered866 = false;
+    let triggered980 = false;
+    let triggered997 = false;
+
+    function ensureAudio() {
+      if (!audioCtx && typeof window !== "undefined") {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    function playWhoosh(duration = 0.55, peakFreq = 680) {
+      if (isMuted || !audioCtx) return;
+      const now = audioCtx.currentTime;
+      const bufferSize = Math.floor(audioCtx.sampleRate * duration);
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.Q.value = 2.4;
+      filter.frequency.setValueAtTime(160, now);
+      filter.frequency.exponentialRampToValueAtTime(peakFreq, now + duration * 0.45);
+      filter.frequency.exponentialRampToValueAtTime(140, now + duration);
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.22, now + duration * 0.42);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      noise.start(now);
+      noise.stop(now + duration);
+    }
+
+    function playImpactHit() {
+      if (isMuted || !audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      // Sub-bass boom (110Hz -> 34Hz)
+      const osc = audioCtx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(115, now);
+      osc.frequency.exponentialRampToValueAtTime(34, now + 0.85);
+
+      const subGain = audioCtx.createGain();
+      subGain.gain.setValueAtTime(0.48, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.45);
+
+      osc.connect(subGain);
+      subGain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 1.5);
+
+      // Warm harmonic chord shimmer (D minor 9th editorial chime)
+      [293.66, 349.23, 440.0, 659.25].forEach((freq) => {
+        const ch = audioCtx.createOscillator();
+        ch.type = "triangle";
+        ch.frequency.setValueAtTime(freq, now);
+        const g = audioCtx.createGain();
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.linearRampToValueAtTime(0.05, now + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0008, now + 2.4);
+        ch.connect(g);
+        g.connect(audioCtx.destination);
+        ch.start(now);
+        ch.stop(now + 2.45);
+      });
+    }
+
+    // ============================================================================
+    // INTERACTIVE PLAYBACK & POSTMESSAGE BRIDGE
+    // ============================================================================
+    let isPlaying = false;
+    let rafId = null;
+    let lastWallTime = 0;
+
+    function resetAudioTriggers(t) {
+      triggered866 = t >= 8.66;
+      triggered980 = t >= 9.80;
+      triggered997 = t >= 9.97;
+    }
+
+    function tick(now) {
+      if (!isPlaying) return;
+      const dt = Math.min(0.05, (now - lastWallTime) / 1000);
+      lastWallTime = now;
+
+      let nextT = currentTime + dt;
+      if (!triggered866 && nextT >= 8.66) {
+        triggered866 = true;
+        playWhoosh(0.58, 620);
+      }
+      if (!triggered980 && nextT >= 9.80) {
+        triggered980 = true;
+        playWhoosh(0.42, 840);
+      }
+      if (!triggered997 && nextT >= 9.97) {
+        triggered997 = true;
+        playImpactHit();
+      }
+
+      if (nextT >= DURATION) {
+        nextT = DURATION;
+        seek(nextT);
+        pause();
+        return;
+      }
+      seek(nextT);
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function play() {
+      ensureAudio();
+      if (currentTime >= DURATION - 0.05) {
+        currentTime = 0;
+      }
+      resetAudioTriggers(currentTime);
+      isPlaying = true;
+      lastWallTime = performance.now();
+      const btn = document.getElementById("play-btn");
+      if (btn) btn.textContent = "Pause";
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function pause() {
+      isPlaying = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      const btn = document.getElementById("play-btn");
+      if (btn) btn.textContent = "Play";
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { type: "flyover-time", t: currentTime, playing: false },
+          "*"
+        );
+      }
+    }
+
+    document.getElementById("play-btn")?.addEventListener("click", () => {
+      if (isPlaying) pause();
+      else play();
+    });
+
+    document.getElementById("scrub-input")?.addEventListener("input", (e) => {
+      pause();
+      seek(parseFloat(e.target.value));
+    });
+
+    window.addEventListener("message", (e) => {
+      if (!e.data || e.data.type !== "flyover-cmd") return;
+      if (e.data.action === "play") play();
+      if (e.data.action === "pause") pause();
+      if (e.data.action === "seek") {
+        pause();
+        seek(e.data.t);
+      }
+      if (e.data.action === "mute") {
+        isMuted = Boolean(e.data.muted);
+      }
+    });
+
+    initScene().catch((err) => console.error("Failed to initialize flyover scene:", err));
+  </script>
+</body>
+</html>

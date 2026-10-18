@@ -1,0 +1,204 @@
+{
+  "pageWidth": 1440,
+  "pageHeight": 5401,
+  "heroBottom": 1005,
+  "sec2TitleY": 1289,
+  "footerY": 5356,
+  "layers": [
+    {
+      "id": "hero-button",
+      "x": 100,
+      "y": 641,
+      "width": 232,
+      "height": 52,
+      "pad": 28,
+      "clip": {
+        "x": 72,
+        "y": 613,
+        "width": 288,
+        "height": 108
+      },
+      "file": "/flyover/pieces/hero-button.png"
+    },
+    {
+      "id": "hero-mockup",
+      "x": 715,
+      "y": 215,
+      "width": 627,
+      "height": 675,
+      "pad": 28,
+      "clip": {
+        "x": 687,
+        "y": 187,
+        "width": 683,
+        "height": 731
+      },
+      "file": "/flyover/pieces/hero-mockup.png"
+    },
+    {
+      "id": "hero-chip-top",
+      "x": 1251,
+      "y": 246,
+      "width": 116,
+      "height": 34,
+      "pad": 28,
+      "clip": {
+        "x": 1223,
+        "y": 218,
+        "width": 172,
+        "height": 90
+      },
+      "file": "/flyover/pieces/hero-chip-top.png"
+    },
+    {
+      "id": "hero-chip-bottom",
+      "x": 690,
+      "y": 833,
+      "width": 174,
+      "height": 40,
+      "pad": 28,
+      "clip": {
+        "x": 662,
+        "y": 805,
+        "width": 230,
+        "height": 96
+      },
+      "file": "/flyover/pieces/hero-chip-bottom.png"
+    },
+    {
+      "id": "sec2-chip-left",
+      "x": 885,
+      "y": 1270,
+      "width": 227,
+      "height": 35,
+      "pad": 28,
+      "clip": {
+        "x": 857,
+        "y": 1242,
+        "width": 283,
+        "height": 91
+      },
+      "file": "/flyover/pieces/sec2-chip-left.png"
+    },
+    {
+      "id": "sec2-chip-right",
+      "x": 885,
+      "y": 1317,
+      "width": 252,
+      "height": 35,
+      "pad": 28,
+      "clip": {
+        "x": 857,
+        "y": 1289,
+        "width": 308,
+        "height": 91
+      },
+      "file": "/flyover/pieces/sec2-chip-right.png"
+    },
+    {
+      "id": "sec2-card-1",
+      "x": 101,
+      "y": 1403,
+      "width": 310,
+      "height": 297,
+      "pad": 28,
+      "clip": {
+        "x": 73,
+        "y": 1375,
+        "width": 366,
+        "height": 353
+      },
+      "file": "/flyover/pieces/sec2-card-1.png"
+    },
+    {
+      "id": "sec2-card-2",
+      "x": 720,
+      "y": 1403,
+      "width": 310,
+      "height": 297,
+      "pad": 28,
+      "clip": {
+        "x": 692,
+        "y": 1375,
+        "width": 366,
+        "height": 353
+      },
+      "file": "/flyover/pieces/sec2-card-2.png"
+    },
+    {
+      "id": "agents-card-1",
+      "x": 663,
+      "y": 2010,
+      "width": 677,
+      "height": 112,
+      "pad": 28,
+      "clip": {
+        "x": 635,
+        "y": 1982,
+        "width": 733,
+        "height": 168
+      },
+      "file": "/flyover/pieces/agents-card-1.png"
+    },
+    {
+      "id": "agents-card-2",
+      "x": 663,
+      "y": 2122,
+      "width": 677,
+      "height": 112,
+      "pad": 28,
+      "clip": {
+        "x": 635,
+        "y": 2094,
+        "width": 733,
+        "height": 168
+      },
+      "file": "/flyover/pieces/agents-card-2.png"
+    },
+    {
+      "id": "deliverable-paper",
+      "x": 160,
+      "y": 3019,
+      "width": 405,
+      "height": 376,
+      "pad": 28,
+      "clip": {
+        "x": 132,
+        "y": 2991,
+        "width": 461,
+        "height": 432
+      },
+      "file": "/flyover/pieces/deliverable-paper.png"
+    },
+    {
+      "id": "testimonial-card",
+      "x": 100,
+      "y": 3521,
+      "width": 1240,
+      "height": 401,
+      "pad": 28,
+      "clip": {
+        "x": 72,
+        "y": 3493,
+        "width": 1296,
+        "height": 457
+      },
+      "file": "/flyover/pieces/testimonial-card.png"
+    },
+    {
+      "id": "benefit-card-1",
+      "x": 702,
+      "y": 4167,
+      "width": 638,
+      "height": 103,
+      "pad": 28,
+      "clip": {
+        "x": 674,
+        "y": 4139,
+        "width": 694,
+        "height": 159
+      },
+      "file": "/flyover/pieces/benefit-card-1.png"
+    }
+  ]
+}

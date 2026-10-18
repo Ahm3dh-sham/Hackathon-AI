@@ -64,6 +64,7 @@ export default function RootLayout({
               <a href="#workflow">How it works</a>
               <a href="#agents">Agent team</a>
               <a href="#blueprint">The blueprint</a>
+              <a href="#flyover-showcase">3D Fly-Over</a>
               <a className="nav-cta" href="#product">
                 Explore the preview <span aria-hidden="true">↗</span>
               </a>
