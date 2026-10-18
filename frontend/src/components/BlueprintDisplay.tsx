@@ -25,6 +25,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { CarouselNavigator } from "@/components/carousel-navigator";
+import { CopyButton } from "@/components/cult-ui/copy-button";
+import { MinimalCard, MinimalCardTitle, MinimalCardDescription } from "@/components/cult-ui/minimal-card";
 
 export type BlueprintTab = "research" | "product" | "architecture" | "prompt" | "talkscript";
 
@@ -463,27 +465,16 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({
   const talkScriptSegments = buildTeamTalkScript(data, slides, localTeamSize);
   const currentSlide = slides[activeSlideIdx] || slides[0];
 
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(masterPrompt);
-    setPromptCopied(true);
-    setTimeout(() => setPromptCopied(false), 2000);
-  };
-
-  const handleCopyTalkScript = () => {
-    const fullText = talkScriptSegments
-      .map(
-        (seg) =>
-          `=== TEAMMATE ${seg.teammateNumber}: ${seg.roleTitle.toUpperCase()} ===\n` +
-          `Slides: ${seg.slideNumbers.map((n) => `Slide ${n}`).join(", ")} | Time: ${seg.durationLabel}\n` +
-          `Stage Cue: ${seg.stageCue}\n\n` +
-          `${seg.scriptParagraphs.join("\n\n")}\n\n` +
-          `Handoff: ${seg.handoffLine}\n`
-      )
-      .join("\n------------------------------------------------------------\n\n");
-    navigator.clipboard.writeText(fullText);
-    setScriptCopied(true);
-    setTimeout(() => setScriptCopied(false), 2000);
-  };
+  const talkScriptFullText = talkScriptSegments
+    .map(
+      (seg) =>
+        `=== TEAMMATE ${seg.teammateNumber}: ${seg.roleTitle.toUpperCase()} ===\n` +
+        `Slides: ${seg.slideNumbers.map((n) => `Slide ${n}`).join(", ")} | Time: ${seg.durationLabel}\n` +
+        `Stage Cue: ${seg.stageCue}\n\n` +
+        `${seg.scriptParagraphs.join("\n\n")}\n\n` +
+        `Handoff: ${seg.handoffLine}\n`
+    )
+    .join("\n------------------------------------------------------------\n\n");
 
   // Download Real .PPTX Presentation via Browser PptxGenJS Bundle
   const handleDownloadPPTX = async () => {
@@ -1611,22 +1602,12 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({
               </p>
             </div>
 
-            <button
-              onClick={handleCopyPrompt}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-extrabold bg-[#394b3f] hover:bg-[#4c604f] text-[#fffdf8] shadow-md shadow-[#394b3f]/15 transition-all shrink-0 self-start sm:self-auto"
-            >
-              {promptCopied ? (
-                <>
-                  <Check className="w-4 h-4 text-[#d5fa70]" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  <span>Copy Prompt</span>
-                </>
-              )}
-            </button>
+            <CopyButton
+              value={masterPrompt}
+              label="Copy Builder Prompt"
+              copiedLabel="Prompt Copied!"
+              className="px-5 py-2.5 text-xs font-extrabold bg-[#394b3f] text-[#fffdf8] hover:bg-[#4c604f] border-[#394b3f] shadow-md shadow-[#394b3f]/15"
+            />
           </div>
 
           <div className="relative">
@@ -1780,20 +1761,20 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({
                   </div>
                 </div>
 
-                {/* Slide Bullet Cards */}
+                {/* Slide Bullet Cards with Cult UI MinimalCard */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {currentSlide.bullets.map((bullet, idx) => (
-                    <div
+                    <MinimalCard
                       key={idx}
-                      className="p-4 bg-[#fffdf8] border border-[#d8d0c1] flex items-start gap-3 shadow-sm"
+                      className="p-4 bg-[#fffdf8] flex items-start gap-3.5 shadow-sm rounded-xl"
                     >
-                      <span className="w-6 h-6 bg-[#eee9df] border border-[#c9b99d] text-[#80643d] font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                      <span className="w-6 h-6 bg-[#eee9df] border border-[#c9b99d] text-[#80643d] font-mono text-xs font-bold flex items-center justify-center shrink-0 rounded-md">
                         0{idx + 1}
                       </span>
                       <p className="text-xs sm:text-sm text-[#292720] font-medium leading-relaxed">
                         {bullet}
                       </p>
-                    </div>
+                    </MinimalCard>
                   ))}
                 </div>
 
@@ -1850,23 +1831,12 @@ export const BlueprintDisplay: React.FC<BlueprintDisplayProps> = ({
               </div>
 
               <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleCopyTalkScript}
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#eee9df] hover:bg-[#e2dacb] text-[#292720] border border-[#c9b99d] transition-colors"
-                >
-                  {scriptCopied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-[#394b3f]" />
-                      Copied Script!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      Copy Full Script
-                    </>
-                  )}
-                </button>
+                <CopyButton
+                  value={talkScriptFullText}
+                  label="Copy Full Script"
+                  copiedLabel="Script Copied!"
+                  className="px-4 py-2 text-xs font-bold bg-[#eee9df] hover:bg-[#e2dacb] text-[#292720] border border-[#c9b99d]"
+                />
 
                 <button
                   type="button"

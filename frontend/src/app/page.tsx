@@ -21,6 +21,13 @@ import {
   Users,
   Presentation,
 } from "lucide-react";
+import { FloatingQuickDock } from "@/components/cult-ui/dock";
+import {
+  TextureCard,
+  TextureCardHeader,
+  TextureCardTitle,
+  TextureCardDescription,
+} from "@/components/cult-ui/texture-card";
 
 const PRESET_BRIEFS = [
   {
@@ -1042,28 +1049,57 @@ export default function Home() {
               Less time circling the prompt. More time building something your team believes in.
             </p>
           </div>
-          <div className="benefit-points">
-            <article data-layer="benefit-card-1">
-              <span className="benefit-mark">01</span>
-              <div>
-                <h3>Start with a sharper idea</h3>
-                <p>Make the problem, user, and project promise clear before the code begins.</p>
-              </div>
-            </article>
-            <article>
-              <span className="benefit-mark">02</span>
-              <div>
-                <h3>Keep the scope buildable</h3>
-                <p>Give the big vision a realistic first cut your team can actually take on.</p>
-              </div>
-            </article>
-            <article>
-              <span className="benefit-mark">03</span>
-              <div>
-                <h3>Build from shared context</h3>
-                <p>Get product, design, architecture, and execution on the same page.</p>
-              </div>
-            </article>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+            <TextureCard variant="warm" className="p-2" data-layer="benefit-card-1">
+              <TextureCardHeader>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-xs font-bold text-[#80643d] bg-[#ebdcc6] px-2.5 py-1">
+                    01 / CONCEPT
+                  </span>
+                  <span className="text-[#80643d] font-mono text-xs">✳</span>
+                </div>
+                <TextureCardTitle className="text-xl font-serif text-[#292720]">
+                  Start with a sharper idea
+                </TextureCardTitle>
+                <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-2">
+                  Make the problem, target user, and project promise crystalline before the code begins.
+                </TextureCardDescription>
+              </TextureCardHeader>
+            </TextureCard>
+
+            <TextureCard variant="warm" className="p-2">
+              <TextureCardHeader>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-xs font-bold text-[#394b3f] bg-[#dbe8dd] px-2.5 py-1">
+                    02 / SCOPE
+                  </span>
+                  <span className="text-[#394b3f] font-mono text-xs">⌘</span>
+                </div>
+                <TextureCardTitle className="text-xl font-serif text-[#292720]">
+                  Keep the scope buildable
+                </TextureCardTitle>
+                <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-2">
+                  Give the big vision a realistic first cut that your team can actually take on and ship.
+                </TextureCardDescription>
+              </TextureCardHeader>
+            </TextureCard>
+
+            <TextureCard variant="warm" className="p-2">
+              <TextureCardHeader>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-xs font-bold text-[#80643d] bg-[#ebdcc6] px-2.5 py-1">
+                    03 / SYNC
+                  </span>
+                  <span className="text-[#80643d] font-mono text-xs">⌬</span>
+                </div>
+                <TextureCardTitle className="text-xl font-serif text-[#292720]">
+                  Build from shared context
+                </TextureCardTitle>
+                <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-2">
+                  Get product, design, architecture, and execution perfectly aligned on the same page.
+                </TextureCardDescription>
+              </TextureCardHeader>
+            </TextureCard>
           </div>
         </div>
       </section>
@@ -1094,6 +1130,9 @@ export default function Home() {
           Studio.
         </p>
       </section>
+
+      {/* Cult UI Floating Quick-Navigation Dock */}
+      <FloatingQuickDock />
     </>
   );
 }
