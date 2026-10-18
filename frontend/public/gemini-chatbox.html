@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini AI Contextual Chatbox</title>
+  <style>
+    :root {
+      --bg-page: #f7f4ed;
+      --bg-surface: #fffdf8;
+      --bg-subtle: #f1ece1;
+      --ink-primary: #292720;
+      --ink-secondary: #5e5a50;
+      --ink-muted: #857f72;
+      --accent-green: #394b3f;
+      --accent-green-hover: #2d3c32;
+      --accent-brass: #80643d;
+      --border-warm: #d8cfc0;
+      --shadow-ambient: 0 24px 60px rgba(41, 39, 32, 0.10);
+      --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--ink-primary);
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      line-height: 1.55;
+    }
+
+    /* Outer Double-Bezel Shell */
+    .gemini-widget-shell {
+      width: 100%;
+      max-width: 720px;
+      padding: 6px;
+      border-radius: 28px;
+      background: rgba(70, 60, 43, 0.05);
+      border: 1px solid rgba(70, 60, 43, 0.12);
+      box-shadow: var(--shadow-ambient);
+    }
+
+    .gemini-widget-core {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-warm);
+      border-radius: 22px;
+      padding: 2rem;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85);
+    }
+
+    /* ================= 1. INITIAL PROMINENT PROMPT VIEW ================= */
+    .initial-prompt-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .initial-header h2 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--ink-primary);
+      text-wrap: balance;
+    }
+
+    .initial-header p {
+      font-size: 0.95rem;
+      color: var(--ink-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .initial-form {
+      display: flex;
+      gap: 0.65rem;
+      margin-top: 0.35rem;
+    }
+
+    .prompt-input {
+      flex: 1;
+      padding: 0.9rem 1.15rem;
+      font-size: 0.98rem;
+      font-family: inherit;
+      color: var(--ink-primary);
+      background: var(--bg-page);
+      border: 1px solid var(--border-warm);
+      border-radius: 14px;
+      outline: none;
+      transition: border-color 0.25s var(--ease-spring), background-color 0.25s var(--ease-spring);
+    }
+
+    .prompt-input:focus {
+      background: var(--bg-surface);
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(57, 75, 63, 0.12);
+    }
+
+    .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 0.9rem 1.45rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: #fffdf8;
+      background-color: var(--accent-green);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.25s var(--ease-spring), background-color 0.25s var(--ease-spring), opacity 0.25s ease;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background-color: var(--accent-green-hover);
+    }
+
+    .submit-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Loading Indicator */
+    .loading-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--accent-brass);
+      padding-top: 0.25rem;
+    }
+
+    .loading-status[hidden] {
+      display: none;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(128, 100, 61, 0.25);
+      border-top-color: var(--accent-brass);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ================= 2. REVEALED CONVERSATIONAL CHATBOX ================= */
+    .chatbox-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-warm);
+      opacity: 1;
+      translate: 0;
+      transition:
+        display 0.45s,
+        opacity 0.45s var(--ease-spring),
+        translate 0.45s var(--ease-spring);
+      transition-behavior: allow-discrete;
+    }
+
+    @starting-style {
+      .chatbox-container {
+        opacity: 0;
+        translate: 0 14px;
+      }
+    }
+
+    /* Completely hidden on initial page load */
+    .chatbox-container[hidden] {
+      display: none;
+      opacity: 0;
+      translate: 0 14px;
+    }
+
+    .chatbox-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chatbox-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-green);
+      background: #e3ece5;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+    }
+
+    .chatbox-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+    }
+
+    .chatbox-context-meta {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Scrollable Chat History Area */
+    .chat-history {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 1.1rem;
+      background: var(--bg-page);
+      border: 1px solid var(--border-warm);
+      border-radius: 16px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-message {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      max-width: 86%;
+      animation: messageFadeIn 0.3s var(--ease-spring);
+    }
+
+    @keyframes messageFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .chat-message.model {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .message-role {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      padding: 0 0.25rem;
+    }
+
+    .message-bubble {
+      padding: 0.85rem 1.05rem;
+      border-radius: 14px;
+      font-size: 0.93rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .chat-message.user .message-bubble {
+      background-color: var(--accent-green);
+      color: #fffdf8;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.model .message-bubble {
+      background-color: var(--bg-surface);
+      color: var(--ink-primary);
+      border: 1px solid var(--border-warm);
+      border-bottom-left-radius: 4px;
+    }
+
+    .followup-form {
+      display: flex;
+      gap: 0.65rem;
+    }
+
+    .error-banner {
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      font-size: 0.85rem;
+    }
+
+    .error-banner[hidden] {
+      display: none;
+    }
+
+    @media (max-width: 560px) {
+      .gemini-widget-core {
+        padding: 1.35rem;
+      }
+      .initial-form,
+      .followup-form {
+        flex-direction: column;
+      }
+      .submit-btn {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .chatbox-container {
+        translate: none;
+        transition-duration: 0.1s;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="gemini-widget-shell">
+    <div class="gemini-widget-core">
+      <!-- 1. INITIAL STATE: Prominent Input + Submit Button -->
+      <section class="initial-prompt-section" id="initial-section">
+        <div class="initial-header">
+          <h2>Ask Gemini AI</h2>
+          <p>Start with a question below. Once answered, the interactive clarification chatbox will unlock.</p>
+        </div>
+
+        <form class="initial-form" id="initial-form">
+          <input
+            type="text"
+            id="initial-input"
+            class="prompt-input"
+            placeholder="e.g., How should I architect a real-time multi-agent hackathon app?"
+            required
+            autocomplete="off"
+          />
+          <button type="submit" id="initial-submit-btn" class="submit-btn">
+            Submit
+          </button>
+        </form>
+
+        <!-- Loading indicator shown during API calls -->
+        <div class="loading-status" id="loading-indicator" hidden aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="loading-text">Generating response with Gemini...</span>
+        </div>
+
+        <!-- Inline Error Banner -->
+        <div class="error-banner" id="error-banner" hidden role="alert"></div>
+      </section>
+
+      <!-- 2. HIDDEN CHATBOX CONTAINER (Revealed only after first AI response) -->
+      <section class="chatbox-container" id="chatbox-container" hidden aria-label="AI Clarification Chat">
+        <div class="chatbox-header">
+          <span class="chatbox-badge">
+            <span class="chatbox-badge-dot"></span>
+            Gemini 3.8 Flash · Context Active
+          </span>
+          <span class="chatbox-context-meta" id="turn-counter">1 turn in memory</span>
+        </div>
+
+        <!-- Scrollable Conversation History -->
+        <div class="chat-history" id="chat-history" role="log" aria-live="polite"></div>
+
+        <!-- Follow-up Clarification Input at the bottom -->
+        <form class="followup-form" id="followup-form">
+          <input
+            type="text"
+            id="followup-input"
+            class="prompt-input"
+            placeholder="Ask a follow-up question to clarify the response..."
+            required
+            autocomplete="off"
+          />
+          <button type="submit" id="followup-submit-btn" class="submit-btn">
+            Ask Follow-up
+          </button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * GEMINI API CONFIGURATION
+     * Note: gemini-1.5-flash is deprecated; substituted with gemini-3.8-flash
+     * ============================================================================
+     */
+    const API_KEY = "YOUR_API_KEY_HERE";
+    const MODEL_NAME = "gemini-3.8-flash";
+    const INTERACTIONS_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
+
+    // System instruction sent on each turn so the model maintains persona + instructions
+    const SYSTEM_INSTRUCTION =
+      "You are a clear, knowledgeable AI assistant. Provide structured, accurate answers and directly address any follow-up clarifications using the prior conversation context.";
+
+    /**
+     * Client-side conversation history array.
+     * Stores full turn steps (`user_input`, `thought`, and `model_output`)
+     * and sends them with every subsequent API request for full context retention.
+     */
+    const conversationHistory = [];
+
+    // DOM Elements
+    const initialForm = document.getElementById("initial-form");
+    const initialInput = document.getElementById("initial-input");
+    const initialSubmitBtn = document.getElementById("initial-submit-btn");
+
+    const loadingIndicator = document.getElementById("loading-indicator");
+    const loadingText = document.getElementById("loading-text");
+    const errorBanner = document.getElementById("error-banner");
+
+    const chatboxContainer = document.getElementById("chatbox-container");
+    const chatHistoryEl = document.getElementById("chat-history");
+    const turnCounterEl = document.getElementById("turn-counter");
+
+    const followupForm = document.getElementById("followup-form");
+    const followupInput = document.getElementById("followup-input");
+    const followupSubmitBtn = document.getElementById("followup-submit-btn");
+
+    /**
+     * Appends a message bubble to the chat history UI and scrolls to the bottom.
+     */
+    function appendMessageToUI(role, text) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `chat-message ${role}`;
+
+      const roleLabel = document.createElement("span");
+      roleLabel.className = "message-role";
+      roleLabel.textContent = role === "user" ? "You" : "Gemini AI";
+
+      const bubble = document.createElement("div");
+      bubble.className = "message-bubble";
+      bubble.textContent = text;
+
+      wrapper.appendChild(roleLabel);
+      wrapper.appendChild(bubble);
+      chatHistoryEl.appendChild(wrapper);
+
+      chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+    }
+
+    /**
+     * Extracts the assistant's text reply from the Interactions API `steps` array.
+     */
+    function extractReplyFromSteps(steps) {
+      if (!Array.isArray(steps)) return "";
+      const textParts = [];
+      for (const step of steps) {
+        if (step.type === "model_output" && Array.isArray(step.content)) {
+          for (const item of step.content) {
+            if (item.type === "text" && item.text) {
+              textParts.push(item.text);
+            }
+          }
+        }
+      }
+      return textParts.join("\n").trim();
+    }
+
+    /**
+     * Calls the Gemini Interactions REST API with the accumulated conversationHistory.
+     */
+    async function sendQueryToGemini(userPrompt) {
+      // Create the new user_input step
+      const userStep = {
+        type: "user_input",
+        content: [{ type: "text", text: userPrompt }]
+      };
+
+      // Build the payload containing the entire conversation history + new user turn
+      const requestHistory = [...conversationHistory, userStep];
+
+      const response = await fetch(INTERACTIONS_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": API_KEY
+        },
+        body: JSON.stringify({
+          model: MODEL_NAME,
+          system_instruction: SYSTEM_INSTRUCTION,
+          store: false, // Stateless client-managed history array
+          input: requestHistory
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg =
+          errData?.error?.message || `API request failed with status ${response.status}`;
+        throw new Error(errMsg);
+      }
+
+      const data = await response.json();
+      const modelSteps = Array.isArray(data.steps) ? data.steps : [];
+      const replyText =
+        data.output_text ||
+        extractReplyFromSteps(modelSteps) ||
+        "No text response returned.";
+
+      // Persist both the user turn and all returned model steps (thought + model_output) in history
+      conversationHistory.push(userStep, ...modelSteps);
+
+      return replyText;
+    }
+
+    /**
+     * Updates UI loading state and button interactivity.
+     */
+    function setLoadingState(isLoading, statusMessage = "Generating response with Gemini...") {
+      loadingText.textContent = statusMessage;
+      loadingIndicator.hidden = !isLoading;
+      initialInput.disabled = isLoading;
+      initialSubmitBtn.disabled = isLoading;
+      followupInput.disabled = isLoading;
+      followupSubmitBtn.disabled = isLoading;
+    }
+
+    function showError(message) {
+      if (!message) {
+        errorBanner.hidden = true;
+        errorBanner.textContent = "";
+      } else {
+        errorBanner.textContent = message;
+        errorBanner.hidden = false;
+      }
+    }
+
+    function updateTurnCounter() {
+      const userTurns = conversationHistory.filter((s) => s.type === "user_input").length;
+      turnCounterEl.textContent = `${userTurns} ${userTurns === 1 ? "turn" : "turns"} in memory`;
+    }
+
+    /**
+     * 1. Handle First Interaction from the Initial Form
+     */
+    initialForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const firstPrompt = initialInput.value.trim();
+      if (!firstPrompt) return;
+
+      showError("");
+      setLoadingState(true, "Thinking through your initial query...");
+
+      try {
+        const aiAnswer = await sendQueryToGemini(firstPrompt);
+
+        // Append the user's initial prompt and the AI's answer to the chatbox
+        appendMessageToUI("user", firstPrompt);
+        appendMessageToUI("model", aiAnswer);
+        updateTurnCounter();
+
+        // Unhide the chatbox UI as soon as the first AI response is generated
+        chatboxContainer.hidden = false;
+
+        // Lock/hide the initial form so the user continues in the follow-up bar
+        initialForm.style.display = "none";
+        followupInput.focus();
+      } catch (error) {
+        showError(error.message || "Failed to connect to the Gemini API. Check YOUR_API_KEY_HERE.");
+      } finally {
+        setLoadingState(false);
+      }
+    });
+
+    /**
+     * 2. Handle Follow-Up Clarification Queries
+     */
+    followupForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const followupPrompt = followupInput.value.trim();
+      if (!followupPrompt) return;
+
+      showError("");
+      // Optimistically render the user's follow-up question in the chat history
+      appendMessageToUI("user", followupPrompt);
+      followupInput.value = "";
+      setLoadingState(true, "Clarifying with conversation context...");
+
+      try {
+        const aiClarification = await sendQueryToGemini(followupPrompt);
+        appendMessageToUI("model", aiClarification);
+        updateTurnCounter();
+      } catch (error) {
+        showError(error.message || "Failed to fetch follow-up response.");
+      } finally {
+        setLoadingState(false);
+        followupInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

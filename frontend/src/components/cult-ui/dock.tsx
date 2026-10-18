@@ -9,6 +9,7 @@ import {
   Users,
   FileCode2,
   Presentation,
+  MessageSquare,
   ArrowUp,
 } from "lucide-react";
 
@@ -81,6 +82,12 @@ export function FloatingQuickDock() {
         href="#product"
         label="Blueprint Studio"
         icon={<Sparkles className="w-4 h-4 text-[#80643d]" />}
+        mouseX={mouseX}
+      />
+      <DockItem
+        href="#gemini-chatbox"
+        label="Gemini AI Chatbox"
+        icon={<MessageSquare className="w-4 h-4 text-[#394b3f]" />}
         mouseX={mouseX}
       />
       <DockItem

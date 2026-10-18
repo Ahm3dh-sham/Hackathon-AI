@@ -65,6 +65,7 @@ export default function RootLayout({
               <a href="#agents">Agent team</a>
               <a href="#blueprint">The blueprint</a>
               <a href="#talkscript">TalkScript</a>
+              <a href="#gemini-chatbox">Gemini Chat</a>
               <a className="nav-cta" href="#product">
                 Open Blueprint Studio <span aria-hidden="true">↗</span>
               </a>

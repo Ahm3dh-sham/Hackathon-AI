@@ -28,6 +28,7 @@ import {
   TextureCardTitle,
   TextureCardDescription,
 } from "@/components/cult-ui/texture-card";
+import { GeminiClarificationChat } from "@/components/GeminiClarificationChat";
 
 const PRESET_BRIEFS = [
   {
@@ -629,6 +630,9 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* ================= GEMINI AI PROGRESSIVE-REVEAL CLARIFICATION CHATBOX ================= */}
+      <GeminiClarificationChat activeProjectContext={brief} />
 
       {/* ================= TICKER BAND ================= */}
       <section className="ticker-band" aria-label="HackForge AI blueprint components">
