@@ -170,53 +170,10 @@ export const VantaBackground: React.FC = () => {
   }, [mode]);
 
   return (
-    <>
-      <div
-        ref={containerRef}
-        className="fixed inset-0 pointer-events-none z-0 opacity-60 transition-opacity duration-700"
-        aria-hidden="true"
-      />
-
-      {/* Floating Vanta 3D Scene Switcher styled in Editorial Linen & Heritage Green */}
-      <div className="fixed bottom-4 right-4 z-40 hidden sm:flex items-center gap-1 p-1 rounded-full bg-[#fffdf8]/95 backdrop-blur-md border border-[#d9d0c2] shadow-lg text-[10px]">
-        <span className="px-2.5 py-1 text-[#726d62] font-mono flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-[#80643d]" />
-          Vanta 3D
-        </span>
-        <button
-          onClick={() => setMode("net")}
-          className={`px-2.5 py-1 rounded-full font-medium flex items-center gap-1 transition-all ${
-            mode === "net"
-              ? "bg-[#394b3f] text-[#fffdf8] shadow"
-              : "text-[#625d52] hover:text-[#292720]"
-          }`}
-          title="Vanta 3D Neural Net"
-        >
-          <Network className="w-3 h-3" /> Net
-        </button>
-        <button
-          onClick={() => setMode("waves")}
-          className={`px-2.5 py-1 rounded-full font-medium flex items-center gap-1 transition-all ${
-            mode === "waves"
-              ? "bg-[#394b3f] text-[#fffdf8] shadow"
-              : "text-[#625d52] hover:text-[#292720]"
-          }`}
-          title="Vanta 3D Waves"
-        >
-          <Waves className="w-3 h-3" /> Waves
-        </button>
-        <button
-          onClick={() => setMode("off")}
-          className={`px-2 py-1 rounded-full font-medium flex items-center gap-1 transition-all ${
-            mode === "off"
-              ? "bg-[#80643d] text-[#fffdf8]"
-              : "text-[#726d62] hover:text-[#292720]"
-          }`}
-          title="Disable 3D Background"
-        >
-          <EyeOff className="w-3 h-3" />
-        </button>
-      </div>
-    </>
+    <div
+      ref={containerRef}
+      className="fixed inset-0 pointer-events-none z-0 opacity-60 transition-opacity duration-700"
+      aria-hidden="true"
+    />
   );
 };

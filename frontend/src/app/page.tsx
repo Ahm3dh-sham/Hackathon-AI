@@ -6,8 +6,8 @@ import { BlueprintDisplay, ProjectStateBlueprint } from "@/components/BlueprintD
 import { DecryptedText } from "@/components/react-bits/DecryptedText";
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 import { CountUp } from "@/components/react-bits/CountUp";
-import { FlyoverShowcase, FlyoverIntroOverlay } from "@/components/FlyoverShowcase";
-import { ArrowLeft, Loader2, Sparkles, Quote, CheckCircle2, Layers, Cpu } from "lucide-react";
+import { FlyoverIntroOverlay } from "@/components/FlyoverShowcase";
+import { ArrowLeft, Loader2, Quote, CheckCircle2, Layers, Cpu } from "lucide-react";
 
 const PRESET_BRIEFS = [
   {
@@ -176,13 +176,9 @@ export default function Home() {
             >
               See a blueprint take shape <span aria-hidden="true">↗</span>
             </a>
-            <button
-              type="button"
-              onClick={() => setShowFlyoverIntro(true)}
-              className="text-link bg-transparent border-0 cursor-pointer"
-            >
-              Replay 3D Fly-Over Intro <span aria-hidden="true">↗</span>
-            </button>
+            <a className="text-link" href="#workflow">
+              Meet your agent crew <span aria-hidden="true">↓</span>
+            </a>
           </div>
 
           {/* Live Telemetry Counters (React Bits CountUp + GSAP) */}
@@ -985,9 +981,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* ================= INTERACTIVE 3D WEBGL2 FLY-OVER STUDIO SHOWCASE ================= */}
-      <FlyoverShowcase onOpenFullscreenIntro={() => setShowFlyoverIntro(true)} />
 
       {/* ================= FINAL CTA ================= */}
       <section className="final-cta section-wrap section-pad" id="start" aria-labelledby="final-title">
