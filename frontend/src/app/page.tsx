@@ -206,30 +206,45 @@ export default function Home() {
             <span className="eyebrow-dot"></span>{" "}
             <DecryptedText text="THE HACKATHON STARTING LINE" speed={24} />
           </p>
-          <h1 id="hero-title">
+          <h1 id="hero-title" className="text-balance">
             A bold idea deserves <span className="headline-accent">a build plan.</span>
           </h1>
-          <p className="hero-description">
+          <p className="hero-description text-pretty">
             Turn a raw problem statement into a complete project blueprint—shaped by a crew of
             specialist AI agents, ready for your team to build in fifteen seconds.
           </p>
           <div className="hero-actions">
             <a
-              className="button button-primary"
+              className="button button-primary group active:scale-[0.98] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pr-2.5"
               href="#product"
               data-layer="hero-button"
             >
-              See a blueprint take shape <span aria-hidden="true">↗</span>
+              <span>See a blueprint take shape</span>
+              <span
+                aria-hidden="true"
+                className="w-7 h-7 rounded-full bg-white/15 inline-flex items-center justify-center transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105"
+              >
+                ↗
+              </span>
             </a>
-            <a className="text-link" href="#workflow">
-              Meet your agent crew <span aria-hidden="true">↓</span>
+            <a
+              className="text-link group transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+              href="#workflow"
+            >
+              Meet your agent crew{" "}
+              <span
+                aria-hidden="true"
+                className="inline-block transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-y-0.5"
+              >
+                ↓
+              </span>
             </a>
           </div>
 
-          {/* Live Telemetry Counters (React Bits CountUp + GSAP) */}
-          <div className="grid grid-cols-3 gap-4 pt-6 mt-6 border-t border-[#463c2b]/15 max-w-md">
+          {/* Live Telemetry Counters (React Bits CountUp + GSAP + Tabular Nums) */}
+          <div className="grid grid-cols-3 gap-4 pt-6 mt-6 border-t border-[#463c2b]/15 max-w-md tabular-nums">
             <div>
-              <p className="font-serif text-3xl font-bold text-[#292720] leading-none">
+              <p className="font-serif text-3xl font-bold text-[#292720] leading-none tabular-nums">
                 <CountUp end={14.8} decimals={1} suffix="s" />
               </p>
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#726d62]">
@@ -237,7 +252,7 @@ export default function Home() {
               </span>
             </div>
             <div>
-              <p className="font-serif text-3xl font-bold text-[#394b3f] leading-none">
+              <p className="font-serif text-3xl font-bold text-[#394b3f] leading-none tabular-nums">
                 <CountUp end={4} suffix=" Agents" />
               </p>
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#726d62]">
@@ -245,8 +260,8 @@ export default function Home() {
               </span>
             </div>
             <div>
-              <p className="font-serif text-3xl font-bold text-[#80643d] leading-none">
-                <CountUp end={96} suffix="%" />
+              <p className="font-serif text-3xl font-bold text-[#80643d] leading-none tabular-nums">
+                <CountUp end={96.4} decimals={1} suffix="%" />
               </p>
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#726d62]">
                 MVP FEASIBILITY
@@ -507,13 +522,13 @@ export default function Home() {
                       type="button"
                       onClick={() => handlePlayAndGenerate("talkscript")}
                       disabled={isGeneratingAI}
-                      className="px-3 py-2 text-[11px] font-mono font-bold uppercase tracking-wider bg-[#80643d] hover:bg-[#68512f] text-[#fffdf8] transition-colors inline-flex items-center gap-1.5"
+                      className="group px-3.5 py-2 text-[11px] font-mono font-bold uppercase tracking-wider rounded-full bg-[#80643d] hover:bg-[#68512f] active:scale-[0.98] text-[#fffdf8] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] inline-flex items-center gap-2"
                     >
-                      <Presentation className="w-3.5 h-3.5" />
-                      TalkScript &amp; PPT
+                      <Presentation className="w-3.5 h-3.5 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-110" />
+                      <span>TalkScript &amp; PPT</span>
                     </button>
                     <button
-                      className="run-demo"
+                      className="run-demo group active:scale-[0.98] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pr-2"
                       id="run-demo"
                       type="button"
                       onClick={() => handlePlayAndGenerate("research")}
@@ -522,15 +537,27 @@ export default function Home() {
                       {isGeneratingAI ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          Forging Blueprint...
+                          <span>Forging Blueprint...</span>
                         </>
                       ) : isReady ? (
                         <>
-                          Generate again <span aria-hidden="true">↗</span>
+                          <span>Generate again</span>
+                          <span
+                            aria-hidden="true"
+                            className="w-6 h-6 rounded-full bg-white/15 inline-flex items-center justify-center transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105"
+                          >
+                            ↗
+                          </span>
                         </>
                       ) : (
                         <>
-                          Play the flow <span aria-hidden="true">↗</span>
+                          <span>Play the flow</span>
+                          <span
+                            aria-hidden="true"
+                            className="w-6 h-6 rounded-full bg-white/15 inline-flex items-center justify-center transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105"
+                          >
+                            ↗
+                          </span>
                         </>
                       )}
                     </button>
@@ -984,48 +1011,50 @@ export default function Home() {
         <div className="mt-20">
           <div
             data-layer="testimonial-card"
-            className="border border-[#cfc4b2] bg-[#fffdf8] p-8 sm:p-11 shadow-[0_26px_68px_rgba(41,39,32,0.12)] relative"
+            className="rounded-[28px] p-1.5 bg-[#463c2b]/[0.05] ring-1 ring-[#463c2b]/10 shadow-[0_28px_72px_rgba(41,39,32,0.12)] relative"
           >
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-              <div className="space-y-4 max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#f3ede2] border border-[#d8cfc0] font-mono text-[11px] uppercase tracking-[0.14em] text-[#80643d]">
-                  <Quote className="w-3.5 h-3.5" /> FIELD REPORT · GRAND PRIZE FINALIST TEAM
-                </div>
-                <blockquote className="font-serif text-2xl sm:text-4xl text-[#292720] leading-[1.18] font-semibold">
-                  “We walked into the weekend with a two-sentence problem statement. Fifteen
-                  seconds later, HackForge handed us our Postgres schema, FastAPI routes, and
-                  scoped MVP. <em className="text-[#80643d] font-normal">We shipped 18 hours early.</em>”
-                </blockquote>
-                <div className="flex flex-wrap items-center gap-4 pt-2">
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-full bg-[#394b3f] text-[#fffdf8] font-serif font-bold text-lg inline-flex items-center justify-center">
-                      AV
-                    </span>
-                    <div>
-                      <strong className="block text-sm text-[#292720]">Aria Vance</strong>
-                      <span className="font-mono text-[11px] text-[#726d62]">
-                        LEAD SYSTEMS ARCHITECT · STANFORD TREEHACKS WINNER
-                      </span>
-                    </div>
+            <div className="rounded-[22px] border border-[#cfc4b2] bg-[#fffdf8] p-8 sm:p-11 shadow-[inset_0_1px_1px_rgba(255,255,255,0.85)]">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div className="space-y-4 max-w-3xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f3ede2] border border-[#d8cfc0] font-mono text-[10px] uppercase tracking-[0.18em] text-[#80643d]">
+                    <Quote className="w-3.5 h-3.5" /> FIELD REPORT · GRAND PRIZE FINALIST TEAM
                   </div>
-                  <span className="hidden sm:inline text-[#d5cbb8]">|</span>
-                  <span className="inline-flex items-center gap-1.5 font-mono text-xs text-[#394b3f] font-semibold">
-                    <CheckCircle2 className="w-4 h-4" /> 14.2s Blueprint Synthesis · 4/4 Agents
-                  </span>
+                  <blockquote className="font-serif text-2xl sm:text-4xl text-[#292720] leading-[1.18] font-semibold text-balance">
+                    “We walked into the weekend with a two-sentence problem statement. Fifteen
+                    seconds later, HackForge handed us our Postgres schema, FastAPI routes, and
+                    scoped MVP. <em className="text-[#80643d] font-normal">We shipped 18 hours early.</em>”
+                  </blockquote>
+                  <div className="flex flex-wrap items-center gap-4 pt-2">
+                    <div className="flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-xl bg-[#394b3f] text-[#fffdf8] font-serif font-bold text-lg inline-flex items-center justify-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+                        AV
+                      </span>
+                      <div>
+                        <strong className="block text-sm text-[#292720]">Aria Vance</strong>
+                        <span className="font-mono text-[11px] text-[#726d62]">
+                          LEAD SYSTEMS ARCHITECT · STANFORD TREEHACKS WINNER
+                        </span>
+                      </div>
+                    </div>
+                    <span className="hidden sm:inline text-[#d5cbb8]">|</span>
+                    <span className="inline-flex items-center gap-1.5 font-mono text-xs text-[#394b3f] font-semibold tabular-nums">
+                      <CheckCircle2 className="w-4 h-4" /> 14.2s Blueprint Synthesis · 4/4 Agents
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="lg:w-64 shrink-0 border-t lg:border-t-0 lg:border-l border-[#e3dacb] pt-6 lg:pt-0 lg:pl-8 space-y-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#726d62]">
-                  EXPORTED DOSSIER METRICS
-                </p>
-                <div className="p-3 bg-[#f7f4ed] border border-[#ded5c5]">
-                  <span className="font-mono text-[10px] text-[#726d62] block">ARCHITECTURE</span>
-                  <strong className="font-serif text-xl text-[#292720]">6 Tables · 8 Routes</strong>
-                </div>
-                <div className="p-3 bg-[#f7f4ed] border border-[#ded5c5]">
-                  <span className="font-mono text-[10px] text-[#726d62] block">BUILDER PROMPT</span>
-                  <strong className="font-serif text-xl text-[#394b3f]">Cursor &amp; Bolt Ready</strong>
+                <div className="lg:w-64 shrink-0 border-t lg:border-t-0 lg:border-l border-[#e3dacb] pt-6 lg:pt-0 lg:pl-8 space-y-3 tabular-nums">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#726d62]">
+                    EXPORTED DOSSIER METRICS
+                  </p>
+                  <div className="p-3 rounded-xl bg-[#f7f4ed] border border-[#ded5c5]">
+                    <span className="font-mono text-[10px] text-[#726d62] block">ARCHITECTURE</span>
+                    <strong className="font-serif text-xl text-[#292720]">6 Tables · 8 Routes</strong>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#f7f4ed] border border-[#ded5c5]">
+                    <span className="font-mono text-[10px] text-[#726d62] block">BUILDER PROMPT</span>
+                    <strong className="font-serif text-xl text-[#394b3f]">Cursor &amp; Bolt Ready</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1033,73 +1062,97 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 04: BENEFITS BAND ================= */}
+      {/* ================= SECTION 04: BENEFITS BAND (Asymmetrical Double-Bezel Bento) ================= */}
       <section className="benefits-band section-pad" aria-labelledby="benefits-title">
         <div className="section-wrap benefits-inner">
           <div className="benefits-heading">
             <p className="eyebrow">
               <span className="section-index">04</span> WHY PLAN WITH HACKFORGE
             </p>
-            <h2 id="benefits-title">
+            <h2 id="benefits-title" className="text-balance">
               Make room for
               <br />
               <span>the fun part.</span>
             </h2>
-            <p>
+            <p className="text-pretty">
               Less time circling the prompt. More time building something your team believes in.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-            <TextureCard variant="warm" className="p-2" data-layer="benefit-card-1">
-              <TextureCardHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-6 items-stretch">
+            <TextureCard
+              variant="warm"
+              className="p-2 md:col-span-7 flex flex-col justify-between transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1"
+              data-layer="benefit-card-1"
+            >
+              <TextureCardHeader className="border-b-0 pb-2">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="font-mono text-xs font-bold text-[#80643d] bg-[#ebdcc6] px-2.5 py-1">
-                    01 / CONCEPT
+                  <span className="font-mono text-[11px] font-bold text-[#80643d] bg-[#ebdcc6] px-3 py-1 rounded-full">
+                    01 / CLARITY FIRST
                   </span>
                   <span className="text-[#80643d] font-mono text-xs">✳</span>
                 </div>
-                <TextureCardTitle className="text-xl font-serif text-[#292720]">
+                <TextureCardTitle className="text-2xl sm:text-3xl font-serif text-[#292720] text-balance">
                   Start with a sharper idea
                 </TextureCardTitle>
-                <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-2">
-                  Make the problem, target user, and project promise crystalline before the code begins.
+                <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-2 max-w-xl text-pretty">
+                  Make the problem statement, target user persona, and project promise crystalline
+                  before the first commit—eliminating mid-weekend scope pivots.
                 </TextureCardDescription>
+                <div className="mt-5 pt-4 border-t border-[#eee7da] flex flex-wrap gap-2 tabular-nums">
+                  <span className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider bg-[#f7f4ed] border border-[#dfd5c4] text-[#394b3f] font-bold">
+                    ✓ USER PERSONA LOCKED
+                  </span>
+                  <span className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider bg-[#f7f4ed] border border-[#dfd5c4] text-[#80643d] font-bold">
+                    ✓ 14.8S MULTI-AGENT SYNTHESIS
+                  </span>
+                </div>
               </TextureCardHeader>
             </TextureCard>
 
-            <TextureCard variant="warm" className="p-2">
-              <TextureCardHeader>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-mono text-xs font-bold text-[#394b3f] bg-[#dbe8dd] px-2.5 py-1">
-                    02 / SCOPE
-                  </span>
-                  <span className="text-[#394b3f] font-mono text-xs">⌘</span>
-                </div>
-                <TextureCardTitle className="text-xl font-serif text-[#292720]">
-                  Keep the scope buildable
-                </TextureCardTitle>
-                <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-2">
-                  Give the big vision a realistic first cut that your team can actually take on and ship.
-                </TextureCardDescription>
-              </TextureCardHeader>
-            </TextureCard>
+            <div className="md:col-span-5 flex flex-col gap-6">
+              <TextureCard
+                variant="warm"
+                className="p-2 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1"
+              >
+                <TextureCardHeader className="border-b-0">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="font-mono text-[11px] font-bold text-[#394b3f] bg-[#dbe8dd] px-3 py-1 rounded-full">
+                      02 / BUILDABLE SCOPE
+                    </span>
+                    <span className="text-[#394b3f] font-mono text-xs">⌘</span>
+                  </div>
+                  <TextureCardTitle className="text-xl font-serif text-[#292720]">
+                    Keep the scope buildable
+                  </TextureCardTitle>
+                  <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-1.5 text-pretty">
+                    Give the big vision a realistic 24–48 hour first cut that your team can actually
+                    take on and demo live.
+                  </TextureCardDescription>
+                </TextureCardHeader>
+              </TextureCard>
 
-            <TextureCard variant="warm" className="p-2">
-              <TextureCardHeader>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-mono text-xs font-bold text-[#80643d] bg-[#ebdcc6] px-2.5 py-1">
-                    03 / SYNC
-                  </span>
-                  <span className="text-[#80643d] font-mono text-xs">⌬</span>
-                </div>
-                <TextureCardTitle className="text-xl font-serif text-[#292720]">
-                  Build from shared context
-                </TextureCardTitle>
-                <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-2">
-                  Get product, design, architecture, and execution perfectly aligned on the same page.
-                </TextureCardDescription>
-              </TextureCardHeader>
-            </TextureCard>
+              <TextureCard
+                variant="warm"
+                className="p-2 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1"
+              >
+                <TextureCardHeader className="border-b-0">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="font-mono text-[11px] font-bold text-[#80643d] bg-[#ebdcc6] px-3 py-1 rounded-full">
+                      03 / TEAM ALIGNMENT
+                    </span>
+                    <span className="text-[#80643d] font-mono text-xs">⌬</span>
+                  </div>
+                  <TextureCardTitle className="text-xl font-serif text-[#292720]">
+                    Build from shared context
+                  </TextureCardTitle>
+                  <TextureCardDescription className="text-sm text-[#5e5a50] leading-relaxed pt-1.5 text-pretty">
+                    Get product, design, architecture, and teammate pitch scripts synchronized on the
+                    same dossier.
+                  </TextureCardDescription>
+                </TextureCardHeader>
+              </TextureCard>
+            </div>
           </div>
         </div>
       </section>
@@ -1113,17 +1166,26 @@ export default function Home() {
         <p className="eyebrow">
           <span className="eyebrow-dot"></span> YOUR NEXT GREAT BUILD STARTS HERE
         </p>
-        <h2 id="final-title">
+        <h2 id="final-title" className="text-balance">
           Bring the prompt.
           <br />
           <span>Leave with a plan.</span>
         </h2>
-        <p className="cta-description">
+        <p className="cta-description text-pretty">
           Give your hackathon idea a team of specialist perspectives—and a blueprint that points
           toward the first commit.
         </p>
-        <a className="button button-primary cta-button" href="#product">
-          Open Blueprint Studio <span aria-hidden="true">↗</span>
+        <a
+          className="button button-primary cta-button group active:scale-[0.98] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pr-2.5"
+          href="#product"
+        >
+          <span>Open Blueprint Studio</span>
+          <span
+            aria-hidden="true"
+            className="w-7 h-7 rounded-full bg-white/15 inline-flex items-center justify-center transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105"
+          >
+            ↗
+          </span>
         </a>
         <p className="cta-note">
           HackForge AI live multi-agent blueprint generation is connected above in the Blueprint
