@@ -1488,8 +1488,10 @@
     }
 
     // ============================================================================
-    // INTERACTIVE PLAYBACK & POSTMESSAGE BRIDGE
+    // INTERACTIVE PLAYBACK & POSTMESSAGE BRIDGE (6.0-Second Real-Time Playback)
     // ============================================================================
+    const REAL_DURATION_SECONDS = 6.0;
+    const TIME_SCALE = DURATION / REAL_DURATION_SECONDS; // Maps 6.0s wall-clock to 14.5s choreography
     let isPlaying = false;
     let rafId = null;
     let lastWallTime = 0;
@@ -1505,14 +1507,14 @@
       const dt = Math.min(0.05, (now - lastWallTime) / 1000);
       lastWallTime = now;
 
-      let nextT = currentTime + dt;
+      let nextT = currentTime + dt * TIME_SCALE;
       if (!triggered866 && nextT >= 8.66) {
         triggered866 = true;
-        playWhoosh(0.58, 620);
+        playWhoosh(0.35, 620);
       }
       if (!triggered980 && nextT >= 9.80) {
         triggered980 = true;
-        playWhoosh(0.42, 840);
+        playWhoosh(0.28, 840);
       }
       if (!triggered997 && nextT >= 9.97) {
         triggered997 = true;

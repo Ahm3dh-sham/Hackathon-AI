@@ -64,10 +64,10 @@ export const FlyoverIntroOverlay: React.FC<FlyoverIntroOverlayProps> = ({
       }
     };
 
-    // Fallback safety timer at 15.2s in case iframe postMessage is delayed
+    // Fallback safety timer at 6.4s in case iframe postMessage is delayed
     const fallbackTimer = setTimeout(() => {
       triggerSmoothExit();
-    }, 15200);
+    }, 6400);
 
     window.addEventListener("message", onMessage);
     return () => {
@@ -85,7 +85,7 @@ export const FlyoverIntroOverlay: React.FC<FlyoverIntroOverlayProps> = ({
       aria-label="HackForge AI 3D Fly-Over Intro"
     >
       <iframe
-        src="/flyover/index.html?embed=1&autoplay=1"
+        src="/flyover/index.html?embed=1&autoplay=1&v=6s"
         title="HackForge AI Fullscreen 3D Fly-Over"
         className="w-screen h-screen border-0 block pointer-events-none"
         allow="autoplay"
